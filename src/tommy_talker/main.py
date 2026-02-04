@@ -8,19 +8,19 @@ import sys
 from pathlib import Path
 
 # Initialize logging first
-from utils import logger
+from tommy_talker.utils import logger
 
 from PyQt6.QtWidgets import QApplication
 
-from utils.hardware_detect import HardwareProfile, detect_hardware
-from utils.permissions import check_permissions, PermissionStatus
-from utils.config import load_config, save_config, ensure_data_dirs
-from gui.setup_guide import SetupGuideWindow
-from gui.menu_bar import MenuBarApp
-from gui.dashboard import DashboardWindow
-from gui.hud import HUDOverlay
-from app_controller import AppController
-from engine.modes import OperatingMode
+from tommy_talker.utils.hardware_detect import HardwareProfile, detect_hardware
+from tommy_talker.utils.permissions import check_permissions, PermissionStatus
+from tommy_talker.utils.config import load_config, save_config, ensure_data_dirs
+from tommy_talker.gui.setup_guide import SetupGuideWindow
+from tommy_talker.gui.menu_bar import MenuBarApp
+from tommy_talker.gui.dashboard import DashboardWindow
+from tommy_talker.gui.hud import HUDOverlay
+from tommy_talker.app_controller import AppController
+from tommy_talker.engine.modes import OperatingMode
 
 
 # Global references to prevent garbage collection
@@ -71,7 +71,7 @@ def _after_permissions(app: QApplication, config, hardware: HardwareProfile):
     
     # Show onboarding wizard on first run (unless skipped)
     if not config.skip_onboarding:
-        from gui.onboarding import OnboardingWizard
+        from tommy_talker.gui.onboarding import OnboardingWizard
         
         logger.info("Showing onboarding wizard")
         _onboarding = OnboardingWizard(config, hardware)

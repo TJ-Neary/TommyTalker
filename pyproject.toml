@@ -47,10 +47,11 @@ dev = [
 ]
 
 [project.scripts]
-tommytalker = "main:main"
+tommytalker = "tommy_talker.main:main"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
+include = ["tommy_talker*"]
 
 [tool.black]
 line-length = 100

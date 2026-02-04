@@ -14,7 +14,7 @@ import numpy as np
 import sounddevice as sd
 import soundfile as sf
 
-from utils.config import get_recordings_path
+from tommy_talker.utils.config import get_recordings_path
 
 
 @dataclass

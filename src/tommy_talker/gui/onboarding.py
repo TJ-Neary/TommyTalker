@@ -11,9 +11,9 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QThread, QTimer
 from PyQt6.QtGui import QFont
 
-from utils.config import UserConfig, DEFAULT_HOTKEYS, save_config
-from utils.hardware_detect import HardwareProfile
-from gui.hotkey_selector import HotkeySelector
+from tommy_talker.utils.config import UserConfig, DEFAULT_HOTKEYS, save_config
+from tommy_talker.utils.hardware_detect import HardwareProfile
+from tommy_talker.gui.hotkey_selector import HotkeySelector
 
 # Check for ollama
 try:
