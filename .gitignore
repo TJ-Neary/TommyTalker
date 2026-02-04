@@ -1,0 +1,65 @@
+# TommyTalker Gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# Local data (created at runtime)
+data/
+
+# User data stored in ~/Documents/TommyTalker/
+# This is intentionally NOT in the project directory
+
+# Secrets (never commit)
+*.pem
+*.key
+.env
+.env.local
+
+# Model files (too large for git)
+*.gguf
+*.bin
+*.safetensors
