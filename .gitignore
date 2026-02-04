@@ -35,6 +35,9 @@ env/
 *.swo
 .DS_Store
 
+# Claude Code local settings (contains absolute paths)
+.claude/
+
 # PyInstaller
 *.manifest
 # Keep TommyTalker.spec but ignore others
@@ -59,11 +62,16 @@ data/
 *.key
 .env
 .env.local
+.security_terms
 
 # Model files (too large for git)
 *.gguf
 *.bin
 *.safetensors
+
+# Third-party app bundles (do not commit)
+SW/
+*.app/
 
 # ============================================================================
 # Privacy Protection - Prevent accidental context leaks
