@@ -12,10 +12,10 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QThread, QTimer
 from PyQt6.QtGui import QFont
 
-from utils.config import UserConfig, DEFAULT_HOTKEYS
-from utils.hardware_detect import HardwareProfile
-from gui.hotkey_selector import HotkeySelector
-from utils.secure_credentials import (
+from tommy_talker.utils.config import UserConfig, DEFAULT_HOTKEYS
+from tommy_talker.utils.hardware_detect import HardwareProfile
+from tommy_talker.gui.hotkey_selector import HotkeySelector
+from tommy_talker.utils.secure_credentials import (
     store_cloud_api_key, get_cloud_api_key,
     store_cloud_base_url, get_cloud_base_url,
     store_huggingface_token, get_huggingface_token,

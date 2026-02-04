@@ -37,7 +37,8 @@ env/
 
 # PyInstaller
 *.manifest
-*.spec
+# Keep TommyTalker.spec but ignore others
+# TommyTalker.spec
 
 # Testing
 .pytest_cache/
@@ -63,3 +64,11 @@ data/
 *.gguf
 *.bin
 *.safetensors
+
+# ============================================================================
+# Privacy Protection - Prevent accidental context leaks
+# ============================================================================
+**/session_*.md
+**/internal_context*
+**/*_private*
+**/*persona*.md

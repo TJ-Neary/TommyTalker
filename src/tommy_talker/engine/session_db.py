@@ -10,7 +10,7 @@ from typing import Optional, List
 from dataclasses import dataclass
 import uuid
 
-from utils.config import get_sqlite_path
+from tommy_talker.utils.config import get_sqlite_path
 
 
 @dataclass

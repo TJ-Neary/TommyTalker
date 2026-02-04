@@ -7,12 +7,12 @@ import time
 from typing import Optional
 from PyQt6.QtCore import QObject, pyqtSignal, QThread
 
-from engine.modes import ModeManager, OperatingMode, ModeResult
-from utils.config import UserConfig, save_config
-from utils.hardware_detect import HardwareProfile
-from utils.hotkeys import HotkeyManager
-from utils.typing import type_at_cursor, paste_text
-from utils.audio_feedback import get_audio_feedback
+from tommy_talker.engine.modes import ModeManager, OperatingMode, ModeResult
+from tommy_talker.utils.config import UserConfig, save_config
+from tommy_talker.utils.hardware_detect import HardwareProfile
+from tommy_talker.utils.hotkeys import HotkeyManager
+from tommy_talker.utils.typing import type_at_cursor, paste_text
+from tommy_talker.utils.audio_feedback import get_audio_feedback
 
 # Minimum time between hotkey triggers (debounce)
 HOTKEY_DEBOUNCE_SECONDS = 0.5
@@ -204,8 +204,8 @@ class AppController(QObject):
         
     def clear_session(self):
         """Clear session data (RAG, etc.)."""
-        from engine.rag_store import RAGStore
-        from utils.config import get_chroma_path
+        from tommy_talker.engine.rag_store import RAGStore
+        from tommy_talker.utils.config import get_chroma_path
         
         rag = RAGStore(get_chroma_path())
         success = rag.clear_session()

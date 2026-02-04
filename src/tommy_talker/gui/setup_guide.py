@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont
 
-from utils.permissions import PermissionStatus, check_permissions, open_system_preferences
+from tommy_talker.utils.permissions import PermissionStatus, check_permissions, open_system_preferences
 
 
 class SetupGuideWindow(QMainWindow):

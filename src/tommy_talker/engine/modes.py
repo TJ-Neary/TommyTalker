@@ -8,13 +8,13 @@ from enum import Enum
 from typing import Optional, Callable
 import threading
 
-from engine.audio_capture import DualStreamRecorder, AudioChunk
-from engine.transcriber import Transcriber, TranscriptionResult
-from engine.llm_client import LLMClient
-from engine.diarizer import Diarizer, align_transcript_with_diarization
-from engine.rag_store import RAGStore
-from utils.config import UserConfig, get_chroma_path, get_style_guide_path
-from utils.hardware_detect import HardwareProfile
+from tommy_talker.engine.audio_capture import DualStreamRecorder, AudioChunk
+from tommy_talker.engine.transcriber import Transcriber, TranscriptionResult
+from tommy_talker.engine.llm_client import LLMClient
+from tommy_talker.engine.diarizer import Diarizer, align_transcript_with_diarization
+from tommy_talker.engine.rag_store import RAGStore
+from tommy_talker.utils.config import UserConfig, get_chroma_path, get_style_guide_path
+from tommy_talker.utils.hardware_detect import HardwareProfile
 
 
 class OperatingMode(Enum):

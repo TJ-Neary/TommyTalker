@@ -7,8 +7,8 @@ from PyQt6.QtWidgets import QSystemTrayIcon, QMenu, QApplication
 from PyQt6.QtGui import QIcon, QAction, QPixmap, QPainter, QColor, QPen
 from PyQt6.QtCore import pyqtSignal, QObject, Qt
 
-from utils.config import UserConfig
-from utils.hardware_detect import HardwareProfile
+from tommy_talker.utils.config import UserConfig
+from tommy_talker.utils.hardware_detect import HardwareProfile
 
 
 class MenuBarApp(QObject):

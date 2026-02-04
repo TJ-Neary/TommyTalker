@@ -9,7 +9,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional
 
-from utils.config import get_data_path
+from tommy_talker.utils.config import get_data_path
 
 
 @dataclass
