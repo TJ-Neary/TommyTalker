@@ -210,10 +210,10 @@ class AppController(QObject):
             text = text.strip().rstrip(".,!?;:")
             text = " ".join(text.split())
         elif fmt == TextInputFormat.TERMINAL_COMMAND:
-            # Strip filler words, collapse whitespace
-            filler = r"\b(um|uh|so|like|please|can you|could you)\b"
+            # Strip filler words, collapse whitespace, clean punctuation
+            filler = r"\b(um|uh|so|like|please|can you|could you|go ahead and)\b"
             text = re.sub(filler, "", text, flags=re.IGNORECASE)
-            text = " ".join(text.split()).strip()
+            text = " ".join(text.split()).strip().strip(".,!?;:").strip()
         elif fmt == TextInputFormat.URL:
             # Strip spaces
             text = text.replace(" ", "")

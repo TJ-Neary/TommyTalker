@@ -158,6 +158,12 @@ def load_config() -> UserConfig:
             cloud_api_key_set=data.get("cloud_api_key_set", False),
         )
         
+        # Migrate old defaults to new defaults
+        if config.hotkeys.get("cursor_mode") == "Cmd+.":
+            config.hotkeys["cursor_mode"] = DEFAULT_HOTKEYS["cursor_mode"]
+            save_config(config)
+            print("[Config] Migrated cursor_mode hotkey: Cmd+. → RightCmd")
+
         print(f"[Config] Loaded from: {config_path}")
         return config
         
