@@ -192,30 +192,38 @@ HUGGINGFACE_TOKEN=hf_...
 ### 4.1 File Structure (MANDATORY)
 ```
 TommyTalker/
-├── main.py                 # Entry point
-├── requirements.txt
-├── pyproject.toml
-├── gui/
-│   ├── __init__.py
-│   ├── menu_bar.py         # System tray / menu bar
-│   ├── dashboard.py        # Main control panel
-│   ├── hud.py              # Transparent overlay
-│   └── setup_guide.py      # Permission wizard
-├── engine/
-│   ├── __init__.py
-│   ├── audio_capture.py    # sounddevice recording
-│   ├── transcriber.py      # mlx_whisper STT
-│   ├── llm_client.py       # Ollama integration
-│   ├── diarizer.py         # pyannote speaker ID
-│   └── rag_store.py        # ChromaDB operations
-├── utils/
-│   ├── __init__.py
-│   ├── hardware_detect.py  # RAM/chip detection
-│   ├── config.py           # User preferences
-│   ├── permissions.py      # macOS permission checks
-│   └── hotkeys.py          # Global hotkey registration
+├── src/tommy_talker/        # Main package
+│   ├── __init__.py          # Package exports
+│   ├── main.py              # Entry point
+│   ├── app_controller.py    # Application orchestration
+│   ├── engine/              # Core AI processing
+│   │   ├── __init__.py
+│   │   ├── audio_capture.py # sounddevice recording
+│   │   ├── transcriber.py   # mlx_whisper STT
+│   │   ├── llm_client.py    # Ollama integration
+│   │   ├── diarizer.py      # pyannote speaker ID
+│   │   ├── rag_store.py     # ChromaDB operations
+│   │   ├── modes.py         # 4 mode controllers
+│   │   └── session_db.py    # SQLite session metadata
+│   ├── gui/                 # PyQt6 interface
+│   │   ├── __init__.py
+│   │   ├── menu_bar.py      # System tray / menu bar
+│   │   ├── dashboard.py     # Main control panel
+│   │   ├── hud.py           # Transparent overlay
+│   │   ├── setup_guide.py   # Permission wizard
+│   │   └── onboarding.py    # First-run wizard
+│   └── utils/               # Infrastructure
+│       ├── __init__.py
+│       ├── hardware_detect.py # RAM/chip detection
+│       ├── config.py        # User preferences
+│       ├── permissions.py   # macOS permission checks
+│       ├── hotkeys.py       # Global hotkey registration
+│       └── secure_credentials.py # Keychain integration
+├── tests/                   # Test suite
+├── pyproject.toml           # Package configuration
+├── requirements.txt         # Runtime dependencies
 └── data/
-    └── .gitkeep            # Created at runtime
+    └── .gitkeep             # Created at runtime
 ```
 
 ### 4.2 Technology Stack (LOCKED)

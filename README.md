@@ -61,7 +61,10 @@ ollama pull llama3:8b
 source .venv/bin/activate
 
 # Run the application
-python main.py
+PYTHONPATH=src python -m tommy_talker.main
+
+# Or after pip install -e .
+tommytalker
 ```
 
 On first launch:
@@ -74,25 +77,34 @@ On first launch:
 
 ```
 TommyTalker/
-├── main.py                 # Entry point
-├── requirements.txt
-├── pyproject.toml
-├── gui/                    # PyQt6 UI components
-│   ├── menu_bar.py         # System tray
-│   ├── dashboard.py        # Main control panel
-│   ├── hud.py              # Transparent overlay
-│   └── setup_guide.py      # Permission wizard
-├── engine/                 # Audio/AI processing
-│   ├── audio_capture.py    # Dual-stream recording
-│   ├── transcriber.py      # mlx_whisper STT
-│   ├── llm_client.py       # Ollama integration
-│   ├── diarizer.py         # Speaker identification
-│   └── rag_store.py        # ChromaDB operations
-└── utils/                  # Core utilities
-    ├── hardware_detect.py  # RAM/chip detection
-    ├── config.py           # User preferences
-    ├── permissions.py      # macOS permission checks
-    └── hotkeys.py          # Global hotkey registration
+├── src/tommy_talker/        # Main package
+│   ├── __init__.py          # Package exports
+│   ├── main.py              # Entry point
+│   ├── app_controller.py    # Application orchestration
+│   ├── engine/              # Core AI processing
+│   │   ├── audio_capture.py # Dual-stream audio pipeline
+│   │   ├── transcriber.py   # mlx-whisper STT
+│   │   ├── llm_client.py    # Ollama/OpenAI LLM
+│   │   ├── diarizer.py      # pyannote speaker diarization
+│   │   ├── rag_store.py     # ChromaDB meeting storage
+│   │   ├── modes.py         # 4 mode controllers
+│   │   └── session_db.py    # SQLite session metadata
+│   ├── gui/                 # PyQt6 interface
+│   │   ├── menu_bar.py      # System tray app
+│   │   ├── dashboard.py     # Settings window
+│   │   ├── hud.py           # Screen-share invisible overlay
+│   │   ├── setup_guide.py   # Permission wizard
+│   │   └── onboarding.py    # First-run wizard
+│   └── utils/               # Infrastructure
+│       ├── config.py        # Configuration management
+│       ├── hardware_detect.py # Apple Silicon tier detection
+│       ├── hotkeys.py       # Global hotkey manager
+│       ├── permissions.py   # macOS permission checks
+│       └── secure_credentials.py # Keychain integration
+├── tests/                   # Test suite
+├── pyproject.toml           # Package configuration
+├── requirements.txt         # Runtime dependencies
+└── requirements-dev.txt     # Development dependencies
 ```
 
 ## Data Storage
