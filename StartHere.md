@@ -16,22 +16,34 @@
 |----------|------|---------|
 | README | [./README.md](./README.md) | Project overview, features, installation, quick start |
 | Project Constitution | [./gemini.md](./gemini.md) | Approved blueprint: data schemas, behavioral rules, architectural invariants |
+| Development Plan | [./_project/DevPlan.md](./_project/DevPlan.md) | Architecture, phases, task tracker, technical decisions |
 | Task Plan | [./task_plan.md](./task_plan.md) | Phase-based development breakdown (Phases 0-5) |
 | Progress Log | [./progress.md](./progress.md) | Session log, error tracking, verification checkpoints |
 | Research Findings | [./findings.md](./findings.md) | Technical research, constraints, open questions |
 | Issues Backlog | [./ISSUES_BACKLOG.md](./ISSUES_BACKLOG.md) | Open and resolved issues tracker |
+
+### Agent Instructions
+
+| Document | Path | Purpose |
+|----------|------|---------|
+| Claude Code (CCT) | [./CLAUDE.md](./CLAUDE.md) | Project context and instructions for Claude Code agent |
+| Antigravity (AG) | [./ANTIGRAVITY.md](./ANTIGRAVITY.md) | Project context and instructions for Antigravity agent |
+| AG Startup Workflow | [./.agent/workflows/gogogo.md](./.agent/workflows/gogogo.md) | AG session startup sequence |
+| AG Wrapup Workflow | [./.agent/workflows/wrapup.md](./.agent/workflows/wrapup.md) | AG session close sequence |
 
 ### Configuration & Build
 
 | Document | Path | Purpose |
 |----------|------|---------|
 | pyproject.toml | [./pyproject.toml](./pyproject.toml) | Project metadata, dependencies, tool config |
-| requirements.txt | [./requirements.txt](./requirements.txt) | pip dependencies (16 packages) |
+| requirements.txt | [./requirements.txt](./requirements.txt) | Runtime dependencies (16 packages) |
+| requirements-dev.txt | [./requirements-dev.txt](./requirements-dev.txt) | Dev dependencies (pytest, black, ruff, pyinstaller, etc.) |
 | .env.example | [./.env.example](./.env.example) | Environment variable template |
 | .gitignore | [./.gitignore](./.gitignore) | Git exclusion rules |
 | TommyTalker.spec | [./TommyTalker.spec](./TommyTalker.spec) | PyInstaller bundling configuration |
 | build.sh | [./build.sh](./build.sh) | Build macOS .app bundle |
 | run_dev.sh | [./run_dev.sh](./run_dev.sh) | Development runner script |
+| scripts/security_scan.sh | [./scripts/security_scan.sh](./scripts/security_scan.sh) | Pre-commit security scanner (7-category scan) |
 
 ---
 
@@ -122,10 +134,10 @@ DATA FLOW:
 
 | File | Purpose | Key Functions | Status |
 |------|---------|---------------|--------|
-| `main.py` | Application entry point | `main()`, `TommyTalkerApp` | **Wired** |
-| `app_controller.py` | Central orchestrator | `AppController`, mode switching, hotkey handling | **Wired** |
+| `src/tommy_talker/main.py` | Application entry point | `main()`, `TommyTalkerApp` | **Wired** |
+| `src/tommy_talker/app_controller.py` | Central orchestrator | `AppController`, mode switching, hotkey handling | **Wired** |
 
-### Engine Modules (`engine/`)
+### Engine Modules (`src/tommy_talker/engine/`)
 
 | File | Purpose | Key Classes/Functions | Status |
 |------|---------|----------------------|--------|
@@ -138,7 +150,7 @@ DATA FLOW:
 | `rag_store.py` | ChromaDB vector store | `RAGStore`, `Document`, `SearchResult` | **Wired** |
 | `session_db.py` | SQLite session storage | `SessionDatabase`, `Session`, `get_session_db()` | **Wired** |
 
-### GUI Modules (`gui/`)
+### GUI Modules (`src/tommy_talker/gui/`)
 
 | File | Purpose | Key Classes | Status |
 |------|---------|-------------|--------|
@@ -150,7 +162,7 @@ DATA FLOW:
 | `onboarding.py` | First-run wizard | `OnboardingWizard`, `ModelDownloadThread` | **Wired** |
 | `hotkey_selector.py` | Hotkey config UI | `HotkeySelector` | **Wired** |
 
-### Utility Modules (`utils/`)
+### Utility Modules (`src/tommy_talker/utils/`)
 
 | File | Purpose | Key Exports | Status |
 |------|---------|-------------|--------|
@@ -171,6 +183,7 @@ DATA FLOW:
 |------|---------|--------|
 | `build.sh` | Build macOS .app bundle via PyInstaller | **Wired** |
 | `run_dev.sh` | Run application in development mode | **Wired** |
+| `scripts/security_scan.sh` | Pre-commit security scanner | **Wired** |
 
 ### Assets (`SW/Contents/Resources/`)
 
@@ -190,7 +203,7 @@ DATA FLOW:
 | pyobjc Python 3.13 | Compatibility | **HIGH** | Circular import error with objc module. HUD overlay visible to screen sharing. Workaround: Use Python 3.12. |
 | torchcodec FFmpeg | Compatibility | **MEDIUM** | FFmpeg 8.0.1 installed but torchcodec only supports v4-7. Speaker diarization may have issues. |
 | `utils/history.py` | Orphaned Code | **LOW** | Module defined but never imported. References non-existent `get_data_path()` from `utils.config`. Will fail if imported. |
-| Missing Tests | Gap | **MEDIUM** | pytest/pytest-qt configured in pyproject.toml but no test files written yet. |
+| Missing Tests | Gap | **MEDIUM** | Test infrastructure ready (conftest.py fixtures, test_example.py stub) but no production tests written. |
 | No CI/CD | Gap | **LOW** | No GitHub Actions workflows configured. |
 
 ---
@@ -212,7 +225,7 @@ DATA FLOW:
 
 ## Roadmap
 
-See [task_plan.md](./task_plan.md) for detailed phase breakdown.
+See [task_plan.md](./task_plan.md) for phase breakdown and [_project/DevPlan.md](./_project/DevPlan.md) for architecture and task tracker.
 
 | Priority | Item | Status |
 |----------|------|--------|
@@ -234,11 +247,21 @@ See [task_plan.md](./task_plan.md) for detailed phase breakdown.
 
 # Or manually
 source .venv/bin/activate
-python main.py
+PYTHONPATH=src python -m tommy_talker.main
+
+# Or after pip install -e .
+tommytalker
 
 # Build macOS .app
 ./build.sh
 # Output: dist/TommyTalker.app
+```
+
+### Testing
+
+```bash
+pytest tests/ -v
+pytest tests/ --cov=src/tommy_talker --cov-report=term-missing
 ```
 
 ### Default Hotkeys
@@ -253,9 +276,9 @@ python main.py
 
 | Entry Point | Transport/Protocol |
 |-------------|-------------------|
-| `main.py:main()` | Application launch |
-| `gui/menu_bar.py` | System tray (PyQt6) |
-| `gui/dashboard.py` | Settings UI (PyQt6) |
+| `src/tommy_talker/main.py:main()` | Application launch |
+| `src/tommy_talker/gui/menu_bar.py` | System tray (PyQt6) |
+| `src/tommy_talker/gui/dashboard.py` | Settings UI (PyQt6) |
 | Global hotkeys | Carbon/Quartz events |
 
 ### Configuration Files
@@ -316,21 +339,20 @@ Files that exist at runtime but are gitignored:
 | Virtual env | `.venv/`, `venv/` | Python dependencies |
 | Python cache | `__pycache__/`, `*.pyc` | Compiled bytecode |
 | Build artifacts | `build/`, `dist/` | PyInstaller output |
+| App bundle assets | `SW/` | Pre-compiled frameworks, audio, icons, templates |
 | Logs | `*.log` | Application logs |
+| Runtime data | `data/` | Local data directory |
 | Test cache | `.pytest_cache/`, `.coverage` | Test artifacts |
+| Linter cache | `.ruff_cache/` | Ruff linter cache |
 | ML models | `*.gguf`, `*.bin`, `*.safetensors` | Large model files |
 | Secrets | `.env`, `*.pem`, `*.key` | Credentials |
-| User data | `~/Documents/TommyTalker/` | Config, sessions, embeddings |
+| User data | `~/Documents/TommyTalker/` | Config, sessions, recordings, embeddings |
 
 ---
 
 ## Project Templates Integration
 
-**Status**: This project is NOT registered in `Tech_Projects/_HQ/SYNC_STATUS.yaml`.
-
-To integrate with the shared standards and templates:
-- Run `/sync` to register this project and check for applicable templates
-- Or run `/new-project` if scaffolding a fresh project from templates
+**Status**: This project is registered in `Tech_Projects/_HQ/SYNC_STATUS.yaml` (as of 2026-02-04).
 
 **Relevant guides** (based on project features):
 - `Tech_Projects/_HQ/guides/universal/LOGGING.md` — Structured logging patterns
@@ -346,15 +368,16 @@ To integrate with the shared standards and templates:
 
 | Metric | Value |
 |--------|-------|
-| Python Modules | 27 |
-| Lines of Code | ~5,000-6,000 |
-| Documentation Files | 6 .md files |
+| Python Modules | 28 |
+| Lines of Code | ~6,350 |
+| Documentation Files | 12 .md files |
 | Operating Modes | 4 (Cursor, Editor, Meeting, HUD) |
-| External Dependencies | 16 (requirements.txt) |
+| Runtime Dependencies | 16 (requirements.txt) |
+| Dev Dependencies | 5+ (requirements-dev.txt) |
 | Orphaned Modules | 1 (`utils/history.py`) |
-| Test Files | 0 (infrastructure ready) |
+| Test Files | 1 stub + conftest.py fixtures |
 | TODO/FIXME Comments | 0 |
 
 ---
 
-*Last generated: 2026-02-04*
+*Last updated: 2026-02-11*
