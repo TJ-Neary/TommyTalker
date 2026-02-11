@@ -1,11 +1,19 @@
 # TommyTalker
 
+![TommyTalker Hero](assets/images/hero-banner.png)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 **Privacy-First Voice Intelligence Suite for macOS**
 
-A professional, local-first macOS application for voice intelligence featuring:
-- 🎤 **Dual-Interface**: Menu Bar + Dashboard
-- 🧠 **Hardware-Aware AI**: Scales from MacBook Air to Max
-- 🔒 **Privacy-First**: All processing happens locally
+TommyTalker is a professional, local-first macOS application designed to transform how you interact with your computer using your voice. It leverages Apple Silicon to run powerful AI models entirely on-device.
+
+### Key Highlights
+- 🎤 **Dual-Interface**: Unobtrusive Menu Bar + Full Dashboard
+- 🧠 **Hardware-Aware AI**: Automatically scales models (Whisper + LLMs) from MacBook Air to Ultra
+- 🔒 **Privacy-First**: Your voice data never leaves your machine
 
 ## Features
 

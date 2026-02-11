@@ -17,6 +17,7 @@
 | README | [./README.md](./README.md) | Project overview, features, installation, quick start |
 | Project Constitution | [./gemini.md](./gemini.md) | Approved blueprint: data schemas, behavioral rules, architectural invariants |
 | Development Plan | [./_project/DevPlan.md](./_project/DevPlan.md) | Architecture, phases, task tracker, technical decisions |
+| Contributing Guide | [./CONTRIBUTING.md](./CONTRIBUTING.md) | Guidelines for contributors, code style, and workflow |
 | Task Plan | [./task_plan.md](./task_plan.md) | Phase-based development breakdown (Phases 0-5) |
 | Progress Log | [./progress.md](./progress.md) | Session log, error tracking, verification checkpoints |
 | Research Findings | [./findings.md](./findings.md) | Technical research, constraints, open questions |
