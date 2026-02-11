@@ -45,12 +45,14 @@ class TestRoundRobin:
     def test_rotation_cycles_through_pool(self):
         """Round-robin cycles through all sounds in the pool."""
         af = AudioFeedback(enabled=False, vary_sounds=True)
-        pool_size = len(af._start_sounds)
+        # Use error pool which has multiple sounds for testing rotation
+        pool = af._error_sounds
+        pool_size = len(pool)
         assert pool_size > 1, "Need multiple sounds to test rotation"
 
         sounds = []
         for _ in range(pool_size):
-            s = af._next_sound(af._start_sounds, "_start_idx")
+            s = af._next_sound(pool, "_error_idx")
             sounds.append(s)
 
         # All sounds in pool should have been used

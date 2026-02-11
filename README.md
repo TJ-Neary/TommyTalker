@@ -4,62 +4,86 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Tests: 76 Passing](https://img.shields.io/badge/tests-76%20passing-brightgreen.svg)](tests/)
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-**Privacy-First Voice Intelligence Suite for macOS**
+**Privacy-First Voice-to-Text for macOS**
 
-TommyTalker is a professional, local-first macOS application designed to transform how you interact with your computer using your voice. It leverages Apple Silicon to run powerful AI models entirely on-device.
+TommyTalker is a local-first macOS voice dictation app built for Apple Silicon. Hold the Right Command key, speak, release — your words appear at the cursor, automatically formatted for the app you're using. All processing happens on-device via mlx-whisper. No cloud. No data leaves your machine.
 
-### Key Highlights
-- 🎤 **Dual-Interface**: Unobtrusive Menu Bar + Full Dashboard
-- 🧠 **Hardware-Aware AI**: Automatically scales models (Whisper + LLMs) from MacBook Air to Ultra
-- 🔒 **Privacy-First**: Your voice data never leaves your machine
+## How It Works
+
+**Push-to-Talk in 3 Steps:**
+
+1. **Hold** Right Command key — recording starts with audio feedback
+2. **Speak** — your voice is captured locally
+3. **Release** — speech is transcribed and pasted at your cursor
+
+TommyTalker detects the frontmost application and automatically formats your text:
+
+| App Type | Formatting | Examples |
+|----------|-----------|----------|
+| **Prose** | Sentence case, proper punctuation | Pages, Notes, Word, Google Docs |
+| **Code Editor** | Lowercase, no trailing punctuation | VS Code, Xcode, Terminal (vim) |
+| **Terminal** | Filler words stripped, command-ready | Terminal, iTerm2, Warp |
+| **Chat** | Casual case, no period at end | Slack, Messages, Discord, Teams |
+| **Email** | Sentence case, professional tone | Mail, Outlook, Gmail |
+| **Search** | All lowercase, no punctuation | Safari, Chrome, Spotlight |
+
+97 app profiles are included out of the box, with automatic category-based fallback for unrecognized apps.
 
 ## Features
 
-### 4 Operating Modes
+- **Push-to-Talk** — Right Command key hold-to-record, release-to-paste
+- **App-Aware Formatting** — 97 app profiles with context-sensitive text output
+- **100% Local** — mlx-whisper runs on Apple Silicon, nothing leaves your machine
+- **Hardware-Aware** — Auto-selects Whisper model size based on your Mac's RAM
+- **Audio Feedback** — Distinct sounds for recording start, stop, and errors
+- **Menu Bar App** — Unobtrusive system tray with dashboard for settings
+- **First-Run Wizard** — Guided setup for permissions and model downloads
 
-| Mode | Description | Hotkey |
-|------|-------------|--------|
-| **Cursor** | Live transcription → Type at cursor | `Cmd+Shift+Space` |
-| **Editor** | Record → LLM Rewrite → Paste | — |
-| **Scribe** | Meeting assistant with speaker diarization | — |
-| **HUD** | Transparent overlay (invisible to screen sharing) | — |
+### Hardware Tiers
 
-### Smart Logic (Hardware Detection)
+TommyTalker detects your hardware and selects appropriate models:
 
-TommyTalker automatically detects your hardware and recommends appropriate AI models:
+| Tier | RAM | Whisper Model | LLM Model |
+|------|-----|---------------|-----------|
+| 1 | <16GB | distil-whisper-small | phi-3 |
+| 2 | 16-32GB | distil-whisper-medium | llama-3-8b |
+| 3 | >32GB | distil-whisper-large-v3 | llama-3-8b |
 
-| Tier | RAM | Whisper Model | LLM Model | Diarization |
-|------|-----|---------------|-----------|-------------|
-| 1 | <16GB | distil-whisper-small | phi-3 | ❌ |
-| 2 | 16-32GB | distil-whisper-medium | llama-3-8b | Optional |
-| 3 | >32GB | distil-whisper-large-v3 | llama-3-8b | ✅ |
+### Engine Capabilities (Available for Future Modes)
+
+The engine layer includes additional capabilities that are built and tested but not yet exposed in the UI:
+
+- **LLM Text Rewriting** — Ollama-powered rewrite-before-paste (Editor mode)
+- **Speaker Diarization** — pyannote.audio for meeting transcripts (Meeting mode)
+- **RAG Storage** — ChromaDB vector store for searchable transcripts (Meeting mode)
+- **HUD Overlay** — Screen-share invisible overlay via `NSWindowSharingTypeNone` (HUD mode)
 
 ## Requirements
 
 - macOS 12.0+ (Monterey or later)
 - Python 3.12+
 - Apple Silicon recommended (M1/M2/M3/M4)
-- Ollama installed for LLM features
+- Ollama installed for LLM features (optional)
 
 ## Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/TommyTalker.git
+git clone https://github.com/TJ-Neary/TommyTalker.git
 cd TommyTalker
 
 # Create virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Install in development mode
+pip install -e .
 
-# Install Ollama models (optional, can be done via GUI)
-ollama pull phi3:mini
-ollama pull llama3:8b
+# Or install from requirements
+pip install -r requirements.txt
 ```
 
 ## Quick Start
@@ -78,58 +102,102 @@ tommytalker
 On first launch:
 1. Grant **Microphone** permission when prompted
 2. Grant **Accessibility** permission for global hotkeys
-3. The app will detect your hardware tier and recommend models
-4. Configure your HuggingFace token in Settings if using diarization
+3. The app detects your hardware tier and recommends models
+4. Hold **Right Command** to start dictating
 
 ## Project Structure
 
 ```
 TommyTalker/
-├── src/tommy_talker/        # Main package
-│   ├── __init__.py          # Package exports
-│   ├── main.py              # Entry point
-│   ├── app_controller.py    # Application orchestration
-│   ├── engine/              # Core AI processing
-│   │   ├── audio_capture.py # Dual-stream audio pipeline
-│   │   ├── transcriber.py   # mlx-whisper STT
-│   │   ├── llm_client.py    # Ollama/OpenAI LLM
-│   │   ├── diarizer.py      # pyannote speaker diarization
-│   │   ├── rag_store.py     # ChromaDB meeting storage
-│   │   ├── modes.py         # 4 mode controllers
-│   │   └── session_db.py    # SQLite session metadata
-│   ├── gui/                 # PyQt6 interface
-│   │   ├── menu_bar.py      # System tray app
-│   │   ├── dashboard.py     # Settings window
-│   │   ├── hud.py           # Screen-share invisible overlay
-│   │   ├── setup_guide.py   # Permission wizard
-│   │   └── onboarding.py    # First-run wizard
-│   └── utils/               # Infrastructure
-│       ├── config.py        # Configuration management
-│       ├── hardware_detect.py # Apple Silicon tier detection
-│       ├── hotkeys.py       # Global hotkey manager
-│       ├── permissions.py   # macOS permission checks
-│       └── secure_credentials.py # Keychain integration
-├── tests/                   # Test suite
-├── pyproject.toml           # Package configuration
-├── requirements.txt         # Runtime dependencies
-└── requirements-dev.txt     # Development dependencies
+├── src/tommy_talker/           # Main package
+│   ├── main.py                 # Entry point + permission gatekeeper
+│   ├── app_controller.py       # Central orchestrator (hotkeys, recording, output)
+│   ├── engine/                 # Core AI processing
+│   │   ├── audio_capture.py    # Dual-stream audio pipeline
+│   │   ├── transcriber.py      # mlx-whisper speech-to-text
+│   │   ├── llm_client.py       # Ollama/OpenAI LLM client
+│   │   ├── diarizer.py         # pyannote speaker diarization
+│   │   ├── rag_store.py        # ChromaDB meeting storage
+│   │   ├── modes.py            # Operating mode controllers
+│   │   └── session_db.py       # SQLite session metadata
+│   ├── gui/                    # PyQt6 interface
+│   │   ├── menu_bar.py         # System tray app
+│   │   ├── dashboard.py        # Settings window
+│   │   ├── hud.py              # Screen-share invisible overlay
+│   │   ├── setup_guide.py      # Permission wizard
+│   │   └── onboarding.py       # First-run wizard
+│   ├── utils/                  # Infrastructure
+│   │   ├── app_context.py      # App detection + text format selection
+│   │   ├── audio_feedback.py   # System sound playback
+│   │   ├── config.py           # Configuration management
+│   │   ├── hardware_detect.py  # Apple Silicon tier detection
+│   │   ├── hotkeys.py          # Quartz Event Tap hotkey manager
+│   │   ├── logger.py           # Structured logging
+│   │   ├── permissions.py      # macOS permission checks
+│   │   ├── typing.py           # Cursor text insertion
+│   │   └── secure_credentials.py # Keychain integration
+│   └── data/                   # Static data files
+│       └── app_profiles.json   # 97 app profiles for context detection
+├── tests/                      # 76 tests across 5 test files
+├── scripts/
+│   └── security_scan.sh        # 9-phase pre-commit security scanner
+├── pyproject.toml              # Package configuration
+├── requirements.txt            # Runtime dependencies
+└── requirements-dev.txt        # Development dependencies
 ```
+
+## Testing
+
+```bash
+# Run all tests
+pytest tests/ -v
+
+# With coverage
+pytest tests/ --cov=src/tommy_talker --cov-report=term-missing
+
+# Mutation testing
+mutmut run
+```
+
+76 tests covering app context detection, modifier-only hotkeys, audio feedback, app-aware LLM formatting, and core infrastructure.
 
 ## Data Storage
 
-All data is stored locally in `~/Documents/TommyTalker/`:
-- **Recordings**: `~/Documents/TommyTalker/Recordings/`
-- **Config**: `~/Documents/TommyTalker/config.json`
-- **ChromaDB**: `~/Documents/TommyTalker/chroma/`
-- **Sessions**: `~/Documents/TommyTalker/sessions.db`
+All user data is stored locally in `~/Documents/TommyTalker/`:
+
+| Data | Path | Purpose |
+|------|------|---------|
+| Config | `~/Documents/TommyTalker/config.json` | User preferences |
+| Recordings | `~/Documents/TommyTalker/Recordings/` | Audio files |
+| Sessions | `~/Documents/TommyTalker/sessions.db` | Session metadata |
+| Embeddings | `~/Documents/TommyTalker/chroma/` | Meeting RAG store |
 
 ## Privacy & Security
 
-- 🔒 **100% Local Processing**: No audio or text leaves your machine
-- 🙈 **HUD Screen-Share Invisibility**: Uses `NSWindowSharingTypeNone`
-- 🧹 **Session Hygiene**: One-click wipe of all session data
-- 🔑 **Secure Token Storage**: HuggingFace tokens stored locally
+- **100% Local Processing** — No audio or text leaves your machine
+- **No Telemetry** — No usage tracking, no analytics, no phone-home
+- **Secure Credentials** — API keys stored in macOS Keychain
+- **Pre-Commit Security** — 9-phase scanner checks for secrets, PII, and sensitive paths
+
+## Technology Stack
+
+| Component | Technology |
+|-----------|------------|
+| Language | Python 3.12+ |
+| GUI | PyQt6 |
+| Speech-to-Text | mlx-whisper (Apple Silicon Metal) |
+| LLM | Ollama (local) / OpenAI-compatible (cloud) |
+| Hotkeys | Quartz Event Tap (modifier-only key support) |
+| Audio | sounddevice + soundfile |
+| Diarization | pyannote.audio |
+| Vector Store | ChromaDB |
+| Hardware Detection | psutil |
+| macOS Integration | pyobjc (Cocoa + Quartz frameworks) |
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
 ## License
 
-MIT License - See LICENSE file for details
+MIT License — See [LICENSE](LICENSE) for details.

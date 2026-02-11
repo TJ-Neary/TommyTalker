@@ -20,22 +20,23 @@
 ## Project Overview
 
 **Project**: TommyTalker
-**Description**: Privacy-first voice intelligence suite for macOS with local-first STT, LLM rewriting, speaker diarization, and RAG-based meeting transcription.
+**Description**: Privacy-first voice-to-text for macOS with push-to-talk dictation, app-aware text formatting, and local-only processing via mlx-whisper on Apple Silicon.
 **Python**: 3.12+
 **Created**: 2026-01
 
 ### Goals
 
-1. Provide privacy-first voice transcription that runs entirely on-device
-2. Support multiple operating modes for different use cases (dictation, editing, meetings, interviews)
-3. Integrate with local LLMs via Ollama for text enhancement
-4. Enable speaker diarization for meeting transcripts
+1. Provide privacy-first voice dictation that runs entirely on-device
+2. Push-to-talk with Right Command key — hold to record, release to paste
+3. Automatically format transcribed text based on the frontmost application
+4. Support multiple operating modes for future use cases (editing, meetings, coaching)
 
 ### Non-Goals
 
 - Cloud-first transcription (only optional fallback)
 - Windows/Linux support (macOS only)
 - Real-time translation
+- Always-listening mode (push-to-talk only for now)
 
 ---
 
@@ -45,78 +46,85 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        TommyTalker                              │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐   │
-│  │   Menu Bar   │────▶│  Dashboard   │────▶│     HUD      │   │
-│  │   (rumps)    │     │   (PyQt6)    │     │   (PyQt6)    │   │
-│  └──────────────┘     └──────────────┘     └──────────────┘   │
-│          │                   │                                  │
-│          └───────────┬───────┘                                  │
-│                      ▼                                          │
-│           ┌──────────────────┐                                  │
-│           │  App Controller  │◀──── Hotkey Events               │
-│           └──────────────────┘                                  │
-│                      │                                          │
-│           ┌──────────┴──────────┐                               │
-│           ▼                     ▼                               │
-│  ┌──────────────┐     ┌──────────────┐                         │
-│  │ Mode Manager │────▶│  Audio Pipe  │                         │
-│  │  (4 modes)   │     │ (sounddevice)│                         │
-│  └──────────────┘     └──────────────┘                         │
-│           │                     │                               │
-│           ▼                     ▼                               │
-│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐   │
-│  │  Transcriber │     │  Diarizer    │     │  RAG Store   │   │
-│  │ (mlx-whisper)│     │ (pyannote)   │     │  (ChromaDB)  │   │
-│  └──────────────┘     └──────────────┘     └──────────────┘   │
-│           │                                                     │
-│           ▼                                                     │
-│  ┌──────────────┐                                               │
-│  │  LLM Client  │────▶ Ollama (local) / OpenAI-compat (cloud)  │
-│  └──────────────┘                                               │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+│                         USER INTERFACE                           │
+│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐    │
+│  │   Menu Bar   │────▶│  Dashboard   │     │  Onboarding  │    │
+│  │   (PyQt6)    │     │  (Settings)  │     │   Wizard     │    │
+│  └──────┬───────┘     └──────┬───────┘     └──────────────┘    │
+│         │                    │                                   │
+│         └────────────┬───────┘                                   │
+│                      ▼                                           │
+│           ┌──────────────────┐                                   │
+│           │  App Controller  │◀──── Right Cmd (Quartz Event Tap) │
+│           │  Push-to-Talk    │                                   │
+│           └──────────────────┘                                   │
+│                      │                                           │
+│           ┌──────────┴──────────┐                                │
+│           ▼                     ▼                                │
+│  ┌──────────────┐     ┌──────────────┐                          │
+│  │ App Context  │     │  Audio Pipe  │                          │
+│  │ 97 profiles  │     │ (sounddevice)│                          │
+│  │ TextFormat   │     │              │                          │
+│  └──────────────┘     └──────────────┘                          │
+│                              │                                   │
+│                              ▼                                   │
+│                     ┌──────────────┐     ┌──────────────┐       │
+│                     │  Transcriber │────▶│  Text Output │       │
+│                     │ (mlx-whisper)│     │ format+paste │       │
+│                     └──────────────┘     └──────────────┘       │
+│                                                                  │
+│  ┌─ Engine (built, UI hidden) ─────────────────────────────────┐│
+│  │  LLM Client (Ollama) │ Diarizer (pyannote) │ RAG (ChromaDB)││
+│  └─────────────────────────────────────────────────────────────┘│
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Components
 
 | Component | Purpose | Status |
 |-----------|---------|--------|
-| engine/audio_capture | Dual-stream audio recording | Complete |
-| engine/transcriber | mlx-whisper STT | Complete |
-| engine/llm_client | Ollama/OpenAI-compat LLM | Complete |
-| engine/diarizer | pyannote speaker diarization | Complete |
-| engine/rag_store | ChromaDB meeting storage | Complete |
-| engine/modes | 4 operating mode controllers | Complete |
-| gui/menu_bar | System tray interface | Complete |
-| gui/dashboard | Settings and controls | Complete |
-| gui/hud | Screen-share invisible overlay | Complete |
-| gui/setup_guide | Permission wizard | Complete |
-| gui/onboarding | First-run wizard | Complete |
-| utils/hardware_detect | Apple Silicon tier detection | Complete |
-| utils/hotkeys | Global hotkey manager | Complete |
+| app_controller.py | Push-to-talk orchestration, hotkey handling, text output | **Active** |
+| utils/app_context.py | Frontmost app detection, 97 profiles, TextInputFormat | **Active** |
+| utils/hotkeys.py | Quartz Event Tap, modifier-only key support | **Active** |
+| utils/audio_feedback.py | System sound playback (Blow.aiff) | **Active** |
+| utils/typing.py | Cursor text insertion (pyautogui + clipboard) | **Active** |
+| engine/audio_capture.py | Dual-stream audio recording | **Active** |
+| engine/transcriber.py | mlx-whisper STT | **Active** |
+| gui/menu_bar.py | System tray interface (cursor mode only) | **Active** |
+| gui/dashboard.py | Settings window (simplified) | **Active** |
+| gui/setup_guide.py | Permission wizard | **Active** |
+| gui/onboarding.py | First-run wizard | **Active** |
+| engine/llm_client.py | Ollama/OpenAI-compat LLM | **Engine only** |
+| engine/diarizer.py | pyannote speaker diarization | **Engine only** |
+| engine/rag_store.py | ChromaDB meeting storage | **Engine only** |
+| engine/modes.py | 4 operating mode controllers | **Engine only** |
+| gui/hud.py | Screen-share invisible overlay | **Engine only** |
+| utils/history.py | Transcription history | **Orphaned** |
 
-### Data Flow
+### Data Flow (Push-to-Talk)
 
 ```
-Microphone → AudioCapture → DualStreamRecorder
-                                    │
-                    ┌───────────────┴───────────────┐
-                    ▼                               ▼
-            Live Callback                    Archive to Disk
-            (streaming)                       (WAV file)
-                    │                               │
-                    └───────────────┬───────────────┘
-                                    ▼
-                              Transcriber
-                            (mlx-whisper)
-                                    │
-                    ┌───────────────┼───────────────┐
-                    ▼               ▼               ▼
-              Cursor Mode     Editor Mode     Meeting Mode
-              (type text)   (LLM rewrite)   (diarize+RAG)
+Right Cmd Down
+    │
+    ▼
+Audio Feedback (Blow.aiff) → Start Recording (sounddevice)
+    │
+Right Cmd Up
+    │
+    ▼
+Audio Feedback (Blow.aiff) → Stop Recording → WAV buffer
+    │
+    ▼
+Transcriber (mlx-whisper) → raw text
+    │
+    ▼
+App Context Detection (NSWorkspace → app_profiles.json → TextInputFormat)
+    │
+    ▼
+Text Formatting (capitalize, strip fillers, etc. based on format)
+    │
+    ▼
+Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 ```
 
 ---
@@ -132,7 +140,7 @@ Microphone → AudioCapture → DualStreamRecorder
 ### Phase 2: Core Features ✓
 - [x] Four operating modes (Cursor, Editor, Meeting, HUD)
 - [x] Mode manager orchestration
-- [x] Global hotkey system
+- [x] Global hotkey system (Carbon)
 - [x] Menu bar application
 
 ### Phase 3: GUI & UX ✓
@@ -147,78 +155,134 @@ Microphone → AudioCapture → DualStreamRecorder
 - [x] Speaker diarization (pyannote)
 - [x] RAG storage (ChromaDB)
 
-### Phase 5: Bundling (Current)
+### Phase 5: Bundling ✓
 - [x] PyInstaller spec file
-- [x] macOS app bundle
-- [ ] Code signing
-- [ ] Notarization
+- [x] macOS app bundle (build.sh)
+- [ ] Code signing (deferred)
+- [ ] Notarization (deferred)
+
+### Phase 6: Push-to-Talk Intelligence ✓ (2026-02-11)
+- [x] Right Command push-to-talk via Quartz Event Tap
+- [x] Modifier-only hotkey support (no Carbon dependency)
+- [x] App context detection (NSWorkspace + 97 app profiles)
+- [x] Context-aware text formatting (prose, code, terminal, chat, email, search)
+- [x] Terminal command filler word stripping
+- [x] Audio feedback system (macOS system sounds, round-robin variation)
+- [x] Comprehensive test suite (76 tests across 5 files)
+- [x] Fixed chromadb/pydantic crash on Python 3.14
+- [x] Fixed bare imports (utils → tommy_talker.utils)
+- [x] Config migration for upgrading old hotkey defaults
+- [x] SIGINT handler for Ctrl+C exit from Qt event loop
+
+### Phase 7: UI Simplification ✓ (2026-02-11)
+- [x] Simplified to push-to-talk only (cursor mode)
+- [x] Removed mode switching UI from menu bar
+- [x] Removed editor/meeting/hud from dashboard modes tab
+- [x] Removed hotkey configuration selectors from dashboard
+- [x] Removed HUD wiring from main.py
+- [x] Kept all engine code intact for future re-enablement
+- [x] Static "Push-to-Talk: Right Command" label in settings
+
+### Phase 8: Portfolio Release (2026-02-11)
+- [x] Hero banner image (assets/images/hero-banner.png)
+- [x] README.md rewrite with app-aware formatting showcase
+- [x] MIT LICENSE
+- [x] CONTRIBUTING.md
+- [x] All documentation updated
+- [ ] Push to GitHub public repository
 
 ---
 
 ## Task Tracker
 
-### Critical Priority
+### Active
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Restructure to src/ layout | Done | _HQ template compliance |
-| Fix Python 3.13 pyobjc compatibility | Blocked | Waiting for pyobjc update |
+| Push to GitHub | Ready | All docs updated, portfolio release |
+| Code signing | Deferred | For App Store / public distribution |
+| Notarization | Deferred | Requires Apple Developer account |
 
-### High Priority
+### Completed (Recent)
 
-| Task | Status | Notes |
-|------|--------|-------|
-| Add comprehensive test suite | Not Started | conftest.py created |
-| Fix orphaned utils/history.py | Not Started | References non-existent get_data_path() |
+| Task | Status | Date |
+|------|--------|------|
+| Push-to-talk (Right Cmd) | Done | 2026-02-11 |
+| App context detection (97 profiles) | Done | 2026-02-11 |
+| Audio feedback system | Done | 2026-02-11 |
+| 76-test suite | Done | 2026-02-11 |
+| UI simplification | Done | 2026-02-11 |
+| Fix startup crashes (chromadb, imports) | Done | 2026-02-11 |
+| Config migration (old defaults) | Done | 2026-02-11 |
+| Restructure to src/ layout | Done | 2026-02-04 |
 
-### Medium Priority
+### Future (Not Building Yet)
 
-| Task | Status | Notes |
-|------|--------|-------|
-| Notarization workflow | Not Started | For App Store / public distribution |
-| Auto-update mechanism | Not Started | Sparkle or custom |
-
-### Low Priority
-
-| Task | Status | Notes |
-|------|--------|-------|
-| Windows port | Not Planned | macOS-only design |
+| Task | Trigger | Notes |
+|------|---------|-------|
+| Re-enable Editor mode | User demand | Engine code intact, needs UI wiring |
+| Re-enable Meeting mode | User demand | Diarization + RAG engine intact |
+| Re-enable HUD mode | User demand | NSWindowSharingTypeNone overlay intact |
+| Windows port | Not planned | macOS-only design |
+| Always-listening mode | Not planned | Privacy concerns, push-to-talk preferred |
 
 ---
 
 ## Technical Decisions
 
 ### TD-001: mlx-whisper over Whisper.cpp
-
 - **Decision**: Use mlx-whisper for transcription
 - **Rationale**: Native Apple Silicon optimization via MLX framework, better performance on M-series chips
 - **Alternatives considered**: Whisper.cpp (C++), faster-whisper (ctranslate2)
 - **Date**: 2026-01
 
 ### TD-002: Hardware Tier System
-
 - **Decision**: Three-tier system based on RAM (Tier 1: <16GB, Tier 2: 16-32GB, Tier 3: >32GB)
 - **Rationale**: Automatically select appropriate model sizes for user's hardware
 - **Alternatives considered**: Manual model selection, GPU VRAM-based tiers
 - **Date**: 2026-01
 
 ### TD-003: NSWindowSharingTypeNone for HUD
-
 - **Decision**: Use pyobjc to set NSWindowSharingTypeNone on HUD overlay
 - **Rationale**: Makes overlay invisible to screen sharing (Zoom, Teams) for interview coaching
 - **Alternatives considered**: Separate window process, overlay-only app
 - **Date**: 2026-01
 
+### TD-004: Quartz Event Tap over Carbon
+- **Decision**: Use Quartz Event Tap for hotkey handling instead of Carbon
+- **Rationale**: Carbon is deprecated and removed in Python 3.14. Quartz Event Tap supports modifier-only keys (Right Command) which Carbon cannot detect as standalone hotkeys.
+- **Alternatives considered**: Carbon (deprecated), pynput (no modifier-only support), CGEvent direct
+- **Date**: 2026-02-11
+
+### TD-005: App Profile System for Context Detection
+- **Decision**: JSON-based app profile database (97 profiles) with bundle ID matching, regex patterns, and category-based fallback
+- **Rationale**: Different apps need different text formatting. A data-driven approach allows easy additions without code changes. Categories provide fallback for unrecognized apps.
+- **Alternatives considered**: Hardcoded app list, per-app plugins, no context detection
+- **Date**: 2026-02-11
+
+### TD-006: Simplify UI to Push-to-Talk Only
+- **Decision**: Hide Editor, Meeting, and HUD modes from UI while keeping engine code intact
+- **Rationale**: Only Cursor mode with push-to-talk is actively used. Other modes add UI clutter. Engine code preserved for future re-enablement without rebuilding.
+- **Alternatives considered**: Remove engine code entirely, keep all modes visible
+- **Date**: 2026-02-11
+
+### TD-007: Audio Feedback via macOS System Sounds
+- **Decision**: Use `/System/Library/Sounds/Blow.aiff` for both start and stop feedback, played via `afplay` subprocess
+- **Rationale**: System sounds are always available, `afplay` is non-blocking, no additional dependencies needed. Blow.aiff provides distinct but unobtrusive feedback.
+- **Alternatives considered**: Custom sound files (SW/ bundle), PyQt6 multimedia, no audio feedback
+- **Date**: 2026-02-11
+
 ---
 
 ## Quality Standards
 
-- **Testing**: pytest with coverage (`--cov=src/tommy_talker --cov-report=term-missing`)
+- **Testing**: pytest with 76 tests, coverage reporting, mutation testing (mutmut)
 - **Formatting**: black (100 char line length)
-- **Linting**: ruff
+- **Linting**: ruff (E, F, I, N, W rules)
 - **Type checking**: mypy
-- **Security**: bandit + security_scan.sh pre-commit hook
+- **Security**: 9-phase pre-commit security scanner (v4)
 - **Commit format**: `<type>: <description>` (feat/fix/docs/refactor/test/chore/perf)
+- **TDD**: Red-Green-Refactor cycle per _HQ TDD standard v2
 
 ---
 
@@ -228,7 +292,12 @@ Microphone → AudioCapture → DualStreamRecorder
 |------|-----------|------|
 | Project structure | Restructured to src/tommy_talker layout | 2026-02-04 |
 | Import style | Changed to absolute imports (tommy_talker.module) | 2026-02-04 |
+| chromadb Python 3.14 crash | Broadened except ImportError to except Exception | 2026-02-11 |
+| Bare import in dashboard.py | Fixed to tommy_talker.utils.config | 2026-02-11 |
+| Config override (Cmd+. → RightCmd) | Added config migration in load_config() | 2026-02-11 |
+| Ctrl+C not exiting Qt | Added signal.signal(SIGINT) handler | 2026-02-11 |
+| pyobjc Python 3.13 issue | Replaced Carbon with Quartz Event Tap | 2026-02-11 |
 
 ---
 
-*Last updated: 2026-02-04*
+*Last updated: 2026-02-11*

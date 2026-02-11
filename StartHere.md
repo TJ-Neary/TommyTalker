@@ -4,7 +4,7 @@
 > Read this document first, then follow links to deeper documentation as needed.
 > Designed for both human developers and LLM agents.
 
-**TommyTalker** is a privacy-first voice intelligence suite for macOS. It provides local-first speech-to-text, LLM-powered text rewriting, speaker diarization, and RAG-based meeting transcription — all running on-device with hardware-aware model selection. The system operates as a menu bar app with four operating modes (Cursor, Editor, Meeting, HUD), supports global hotkeys, and features a transparent overlay invisible to screen sharing.
+**TommyTalker** is a privacy-first voice-to-text app for macOS. Hold the Right Command key, speak, release — your words appear at the cursor, automatically formatted for the app you're using. All speech recognition runs locally via mlx-whisper on Apple Silicon. The engine also includes LLM rewriting, speaker diarization, and RAG storage — built and tested but hidden from the UI, reserved for future re-enablement.
 
 ---
 
@@ -15,13 +15,9 @@
 | Document | Path | Purpose |
 |----------|------|---------|
 | README | [./README.md](./README.md) | Project overview, features, installation, quick start |
-| Project Constitution | [./gemini.md](./gemini.md) | Approved blueprint: data schemas, behavioral rules, architectural invariants |
 | Development Plan | [./_project/DevPlan.md](./_project/DevPlan.md) | Architecture, phases, task tracker, technical decisions |
 | Contributing Guide | [./CONTRIBUTING.md](./CONTRIBUTING.md) | Guidelines for contributors, code style, and workflow |
-| Task Plan | [./task_plan.md](./task_plan.md) | Phase-based development breakdown (Phases 0-5) |
-| Progress Log | [./progress.md](./progress.md) | Session log, error tracking, verification checkpoints |
-| Research Findings | [./findings.md](./findings.md) | Technical research, constraints, open questions |
-| Issues Backlog | [./ISSUES_BACKLOG.md](./ISSUES_BACKLOG.md) | Open and resolved issues tracker |
+| License | [./LICENSE](./LICENSE) | MIT License |
 
 ### Agent Instructions
 
@@ -32,99 +28,110 @@
 | AG Startup Workflow | [./.agent/workflows/gogogo.md](./.agent/workflows/gogogo.md) | AG session startup sequence |
 | AG Wrapup Workflow | [./.agent/workflows/wrapup.md](./.agent/workflows/wrapup.md) | AG session close sequence |
 
+### Legacy Documentation
+
+These files were created during the initial Gemini-based build phase and are kept for historical reference. The Development Plan (`_project/DevPlan.md`) is now the authoritative planning document.
+
+| Document | Path | Purpose |
+|----------|------|---------|
+| Blueprint | [./gemini.md](./gemini.md) | Original data schemas and behavioral rules |
+| Task Plan | [./task_plan.md](./task_plan.md) | Original phase-based development breakdown |
+| Progress Log | [./progress.md](./progress.md) | Original session log and error tracking |
+| Research | [./findings.md](./findings.md) | Technical research and open questions |
+| Issues Backlog | [./ISSUES_BACKLOG.md](./ISSUES_BACKLOG.md) | Original issues tracker |
+
 ### Configuration & Build
 
 | Document | Path | Purpose |
 |----------|------|---------|
 | pyproject.toml | [./pyproject.toml](./pyproject.toml) | Project metadata, dependencies, tool config |
-| requirements.txt | [./requirements.txt](./requirements.txt) | Runtime dependencies (16 packages) |
-| requirements-dev.txt | [./requirements-dev.txt](./requirements-dev.txt) | Dev dependencies (pytest, black, ruff, pyinstaller, etc.) |
+| requirements.txt | [./requirements.txt](./requirements.txt) | Runtime dependencies |
+| requirements-dev.txt | [./requirements-dev.txt](./requirements-dev.txt) | Dev dependencies (pytest, black, ruff, mutmut, pyinstaller) |
 | .env.example | [./.env.example](./.env.example) | Environment variable template |
 | .gitignore | [./.gitignore](./.gitignore) | Git exclusion rules |
 | TommyTalker.spec | [./TommyTalker.spec](./TommyTalker.spec) | PyInstaller bundling configuration |
 | build.sh | [./build.sh](./build.sh) | Build macOS .app bundle |
 | run_dev.sh | [./run_dev.sh](./run_dev.sh) | Development runner script |
-| scripts/security_scan.sh | [./scripts/security_scan.sh](./scripts/security_scan.sh) | Pre-commit security scanner (7-category scan) |
+| security_scan.sh | [./scripts/security_scan.sh](./scripts/security_scan.sh) | 9-phase pre-commit security scanner (v4) |
 
 ---
 
 ## System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              USER INTERFACE                                  │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
-│  │  Menu Bar   │  │  Dashboard  │  │  HUD Overlay│  │  Setup/Onboarding   │ │
-│  │ (menu_bar)  │  │ (dashboard) │  │   (hud)     │  │ (setup_guide,       │ │
-│  │             │  │             │  │ NSWindow-   │  │  onboarding,        │ │
-│  │ Mode select │  │ Settings    │  │ SharingType │  │  hotkey_selector)   │ │
-│  │ Record btn  │  │ Model mgmt  │  │ None        │  │                     │ │
-│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘ │
-│         │                │                │                    │            │
-│         └────────────────┴────────────────┴────────────────────┘            │
-│                                   │                                          │
-│                                   ▼                                          │
-│  ┌─────────────────────────────────────────────────────────────────────────┐│
-│  │                         APP CONTROLLER                                   ││
-│  │  • Mode orchestration    • Hotkey management    • Signal coordination   ││
-│  └─────────────────────────────────┬───────────────────────────────────────┘│
-└────────────────────────────────────┼────────────────────────────────────────┘
-                                     │
-┌────────────────────────────────────┼────────────────────────────────────────┐
-│                              ENGINE LAYER                                    │
-│                                    ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────────────┐│
-│  │                          MODE MANAGER                                    ││
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐                 ││
-│  │  │  CURSOR  │  │  EDITOR  │  │ MEETING  │  │   HUD    │                 ││
-│  │  │ Live STT │  │ STT+LLM  │  │ STT+     │  │ Live STT │                 ││
-│  │  │ →cursor  │  │ rewrite  │  │ Diarize+ │  │ →overlay │                 ││
-│  │  │          │  │ →cursor  │  │ RAG      │  │          │                 ││
-│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘                 ││
-│  └─────────────────────────────────┬───────────────────────────────────────┘│
-│                                    │                                         │
-│         ┌──────────────────────────┼──────────────────────────┐             │
-│         ▼                          ▼                          ▼             │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────┐  │
-│  │  AUDIO CAPTURE  │  │   TRANSCRIBER   │  │        LLM CLIENT           │  │
-│  │  DualStream:    │  │   mlx-whisper   │  │  Ollama (local)             │  │
-│  │  • Live feed    │  │   Apple Silicon │  │  ....or....                 │  │
-│  │  • Archive WAV  │  │   optimized     │  │  OpenAI-compatible (cloud)  │  │
-│  └────────┬────────┘  └────────┬────────┘  └──────────────┬──────────────┘  │
-│           │                    │                          │                 │
-│           ▼                    ▼                          │                 │
-│  ┌─────────────────┐  ┌─────────────────┐                │                 │
-│  │    DIARIZER     │  │    RAG STORE    │◄───────────────┘                 │
-│  │  pyannote.audio │  │    ChromaDB     │                                  │
-│  │  HF token req'd │  │  vector store   │                                  │
-│  └─────────────────┘  └─────────────────┘                                  │
-│                                                                             │
-│  ┌─────────────────────────────────────────────────────────────────────────┐│
-│  │                         SESSION DATABASE                                 ││
-│  │                    SQLite: ~/Documents/TommyTalker/sessions.db          ││
-│  └─────────────────────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────────────────────┘
-                                     │
-┌────────────────────────────────────┼────────────────────────────────────────┐
-│                              UTILS LAYER                                     │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│  │  hardware_  │ │   config    │ │ permissions │ │   hotkeys   │           │
-│  │  detect     │ │   JSON I/O  │ │  Mic/A11y   │ │   Carbon/   │           │
-│  │  Tier 1-3   │ │             │ │  checks     │ │   Quartz    │           │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│  │   typing    │ │   logger    │ │   audio_    │ │   secure_   │           │
-│  │  pyautogui  │ │  structured │ │   feedback  │ │   creds     │           │
-│  │  clipboard  │ │  logging    │ │  sounds     │ │   .env      │           │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                              USER INTERFACE                               │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────────────┐  │
+│  │  Menu Bar   │  │  Dashboard  │  │  Setup Guide / Onboarding      │  │
+│  │ (menu_bar)  │  │ (dashboard) │  │  (setup_guide, onboarding)     │  │
+│  │             │  │             │  │                                 │  │
+│  │ Record btn  │  │ Settings    │  │  Permission checks, model DL   │  │
+│  └──────┬──────┘  └──────┬──────┘  └──────────────┬──────────────────┘  │
+│         │                │                         │                     │
+│         └────────────────┴─────────────────────────┘                     │
+│                                   │                                      │
+│                                   ▼                                      │
+│  ┌───────────────────────────────────────────────────────────────────┐   │
+│  │                       APP CONTROLLER                               │   │
+│  │  • Push-to-talk (Right Cmd via Quartz Event Tap)                  │   │
+│  │  • App context detection → TextInputFormat selection              │   │
+│  │  • Text formatting + paste/type at cursor                         │   │
+│  │  • Audio feedback on start/stop                                   │   │
+│  └───────────────────────────────┬───────────────────────────────────┘   │
+└──────────────────────────────────┼───────────────────────────────────────┘
+                                   │
+┌──────────────────────────────────┼───────────────────────────────────────┐
+│                            ENGINE LAYER                                   │
+│                                  ▼                                        │
+│  ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────────┐    │
+│  │  AUDIO CAPTURE  │   │   TRANSCRIBER   │   │    APP CONTEXT      │    │
+│  │  DualStream:    │──▶│   mlx-whisper   │   │  NSWorkspace +      │    │
+│  │  • Live feed    │   │   Apple Silicon │   │  97 app profiles    │    │
+│  │  • Archive WAV  │   │   optimized     │   │  (app_profiles.json)│    │
+│  └─────────────────┘   └────────┬────────┘   └──────────┬──────────┘    │
+│                                 │                        │               │
+│                                 ▼                        ▼               │
+│                        ┌─────────────────────────────────────────┐       │
+│                        │           TEXT OUTPUT                     │       │
+│                        │  Format by context → paste at cursor    │       │
+│                        │  (prose, code, terminal, chat, email...)│       │
+│                        └─────────────────────────────────────────┘       │
+│                                                                          │
+│  ┌─ Built but UI hidden (future modes) ────────────────────────────┐    │
+│  │                                                                  │    │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │    │
+│  │  │  LLM CLIENT  │  │  DIARIZER    │  │    RAG STORE         │  │    │
+│  │  │  Ollama +    │  │  pyannote    │  │    ChromaDB          │  │    │
+│  │  │  OpenAI API  │  │  .audio      │  │    vector store      │  │    │
+│  │  └──────────────┘  └──────────────┘  └──────────────────────┘  │    │
+│  │                                                                  │    │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │    │
+│  │  │ MODE MANAGER │  │  SESSION DB  │  │  HUD OVERLAY         │  │    │
+│  │  │ 4 modes      │  │  SQLite      │  │  NSWindowSharingType │  │    │
+│  │  │ (engine only)│  │  metadata    │  │  None (invisible)    │  │    │
+│  │  └──────────────┘  └──────────────┘  └──────────────────────┘  │    │
+│  └──────────────────────────────────────────────────────────────────┘    │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+                                   │
+┌──────────────────────────────────┼───────────────────────────────────────┐
+│                            UTILS LAYER                                    │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐       │
+│  │  hardware_  │ │   config    │ │ permissions │ │   hotkeys   │       │
+│  │  detect     │ │   JSON I/O  │ │  Mic/A11y   │ │   Quartz    │       │
+│  │  Tier 1-3   │ │  + migrate  │ │  checks     │ │  Event Tap  │       │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘       │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐       │
+│  │   typing    │ │   logger    │ │   audio_    │ │   secure_   │       │
+│  │  pyautogui  │ │  structured │ │   feedback  │ │   creds     │       │
+│  │  clipboard  │ │  logging    │ │  Blow.aiff  │ │  Keychain   │       │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘       │
+└──────────────────────────────────────────────────────────────────────────┘
 
-DATA FLOW:
-  Microphone → AudioCapture → Transcriber → [Diarizer] → [LLMClient] → Output
-                    ↓                              ↓
-              Archive WAV                    RAGStore (embed)
-                    ↓                              ↓
-              SessionDB                      ChromaDB
+DATA FLOW (Push-to-Talk):
+  Right Cmd Down → AudioFeedback → AudioCapture (start)
+  Right Cmd Up   → AudioFeedback → AudioCapture (stop) → Transcriber
+       → AppContext (detect app) → Format text → Paste at cursor
 ```
 
 ---
@@ -135,65 +142,86 @@ DATA FLOW:
 
 | File | Purpose | Key Functions | Status |
 |------|---------|---------------|--------|
-| `src/tommy_talker/main.py` | Application entry point | `main()`, `TommyTalkerApp` | **Wired** |
-| `src/tommy_talker/app_controller.py` | Central orchestrator | `AppController`, mode switching, hotkey handling | **Wired** |
+| `src/tommy_talker/main.py` | Application entry point | `main()`, `launch_main_app()`, `_after_permissions()` | **Active** |
+| `src/tommy_talker/app_controller.py` | Central orchestrator | `AppController`, push-to-talk, text output | **Active** |
 
 ### Engine Modules (`src/tommy_talker/engine/`)
 
 | File | Purpose | Key Classes/Functions | Status |
 |------|---------|----------------------|--------|
-| `__init__.py` | Package exports | Re-exports all engine components | **Wired** |
-| `modes.py` | Operating mode logic | `OperatingMode`, `ModeManager`, `*ModeController` | **Wired** |
-| `audio_capture.py` | Dual-stream recording | `AudioCapture`, `DualStreamRecorder`, `AudioChunk` | **Wired** |
-| `transcriber.py` | Speech-to-text | `Transcriber`, `TranscriptionResult` | **Wired** |
-| `llm_client.py` | Ollama/Cloud LLM | `LLMClient`, `RewriteResult` | **Wired** |
-| `diarizer.py` | Speaker identification | `Diarizer`, `SpeakerSegment`, `DiarizationResult` | **Wired** |
-| `rag_store.py` | ChromaDB vector store | `RAGStore`, `Document`, `SearchResult` | **Wired** |
-| `session_db.py` | SQLite session storage | `SessionDatabase`, `Session`, `get_session_db()` | **Wired** |
+| `__init__.py` | Package exports | Re-exports engine components | **Active** |
+| `audio_capture.py` | Dual-stream recording | `AudioCapture`, `DualStreamRecorder` | **Active** |
+| `transcriber.py` | Speech-to-text | `Transcriber`, `TranscriptionResult` | **Active** |
+| `modes.py` | Operating mode logic | `OperatingMode`, `ModeManager`, `*ModeController` | **Engine only** |
+| `llm_client.py` | Ollama/Cloud LLM | `LLMClient`, `RewriteResult` | **Engine only** |
+| `diarizer.py` | Speaker identification | `Diarizer`, `SpeakerSegment` | **Engine only** |
+| `rag_store.py` | ChromaDB vector store | `RAGStore`, `SearchResult` | **Engine only** |
+| `session_db.py` | SQLite session storage | `SessionDatabase`, `Session` | **Engine only** |
 
 ### GUI Modules (`src/tommy_talker/gui/`)
 
 | File | Purpose | Key Classes | Status |
 |------|---------|-------------|--------|
-| `__init__.py` | Package exports | Re-exports GUI components | **Wired** |
-| `menu_bar.py` | System tray app | `MenuBarApp` | **Wired** |
-| `dashboard.py` | Settings/control panel | `DashboardWindow`, `OllamaDownloadThread` | **Wired** |
-| `hud.py` | Transparent overlay | `HUDOverlay` (NSWindowSharingTypeNone) | **Wired** |
-| `setup_guide.py` | Permission wizard | `SetupGuideWindow` | **Wired** |
-| `onboarding.py` | First-run wizard | `OnboardingWizard`, `ModelDownloadThread` | **Wired** |
-| `hotkey_selector.py` | Hotkey config UI | `HotkeySelector` | **Wired** |
+| `__init__.py` | Package exports | Re-exports GUI components | **Active** |
+| `menu_bar.py` | System tray app | `MenuBarApp` (cursor mode only) | **Active** |
+| `dashboard.py` | Settings/control panel | `DashboardWindow` (simplified) | **Active** |
+| `setup_guide.py` | Permission wizard | `SetupGuideWindow` | **Active** |
+| `onboarding.py` | First-run wizard | `OnboardingWizard`, `ModelDownloadThread` | **Active** |
+| `hud.py` | Transparent overlay | `HUDOverlay` (NSWindowSharingTypeNone) | **Engine only** |
+| `hotkey_selector.py` | Hotkey config UI | `HotkeySelector` | **Not wired** |
 
 ### Utility Modules (`src/tommy_talker/utils/`)
 
 | File | Purpose | Key Exports | Status |
 |------|---------|-------------|--------|
-| `__init__.py` | Package exports | Re-exports utility components | **Wired** |
-| `config.py` | Configuration management | `UserConfig`, `load_config()`, `save_config()` | **Wired** |
-| `hardware_detect.py` | RAM/chip tier detection | `HardwareProfile`, `detect_hardware()`, `TIER_CONFIG` | **Wired** |
-| `permissions.py` | macOS permission checks | `PermissionStatus`, `check_permissions()` | **Wired** |
-| `hotkeys.py` | Global hotkey registration | `HotkeyManager`, `KEY_CODES` | **Wired** |
-| `typing.py` | Text input automation | `TypingController`, `type_at_cursor()`, `paste_text()` | **Wired** |
-| `logger.py` | Logging configuration | `setup_logger()`, `get_logger()` | **Wired** |
-| `audio_feedback.py` | Audio notifications | `AudioFeedback`, `get_audio_feedback()` | **Wired** |
-| `secure_credentials.py` | Credential storage | `store_credential()`, `get_credential()` | **Wired** |
-| `history.py` | Transcription history | `TranscriptionHistory`, `HistoryEntry` | **Orphaned** |
+| `__init__.py` | Package exports | Re-exports utility components | **Active** |
+| `app_context.py` | App detection + text format | `AppContext`, `TextInputFormat`, `get_app_context()` | **Active** |
+| `audio_feedback.py` | Audio notifications | `AudioFeedback`, `get_audio_feedback()` | **Active** |
+| `config.py` | Configuration management | `UserConfig`, `load_config()`, `save_config()` | **Active** |
+| `hardware_detect.py` | RAM/chip tier detection | `HardwareProfile`, `detect_hardware()` | **Active** |
+| `permissions.py` | macOS permission checks | `PermissionStatus`, `check_permissions()` | **Active** |
+| `hotkeys.py` | Quartz Event Tap hotkeys | `HotkeyManager`, `is_modifier_only_hotkey()` | **Active** |
+| `typing.py` | Text input automation | `type_at_cursor()`, `paste_text()` | **Active** |
+| `logger.py` | Logging configuration | `setup_logger()`, `get_logger()` | **Active** |
+| `secure_credentials.py` | Credential storage | `store_credential()`, `get_credential()` | **Active** |
+| `history.py` | Transcription history | `TranscriptionHistory` | **Orphaned** |
+
+### Data Files (`src/tommy_talker/data/`)
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `app_profiles.json` | 97 app profiles (bundle IDs, categories, text formats) | **Active** |
+
+### Tests (`tests/`)
+
+| File | Tests | Coverage |
+|------|-------|----------|
+| `test_app_context.py` | 18 tests | App detection, profile matching, category fallback |
+| `test_modifier_hotkey.py` | 22 tests | Quartz Event Tap, modifier-only keys, debounce |
+| `test_app_aware_llm.py` | 15 tests | Text formatting by app context |
+| `test_audio_feedback.py` | 15 tests | Sound playback, pool rotation, enable/disable |
+| `test_example.py` | 6 tests | Core infrastructure |
+| `conftest.py` | — | Shared fixtures for macOS API mocking |
+
+**Total: 76 tests passing**
 
 ### Scripts
 
 | File | Purpose | Status |
 |------|---------|--------|
-| `build.sh` | Build macOS .app bundle via PyInstaller | **Wired** |
-| `run_dev.sh` | Run application in development mode | **Wired** |
-| `scripts/security_scan.sh` | Pre-commit security scanner | **Wired** |
+| `build.sh` | Build macOS .app bundle via PyInstaller | **Active** |
+| `run_dev.sh` | Run application in development mode | **Active** |
+| `scripts/security_scan.sh` | 9-phase pre-commit security scanner (v4) | **Active** |
 
-### Assets (`SW/Contents/Resources/`)
+### Assets
 
-| Type | Files | Purpose |
-|------|-------|---------|
-| Audio | `Start{1-4}.m4a`, `Stop{1-4}.m4a`, `noResult{1-4}.m4a`, `Intro.m4a`, `Loop.m4a` | UI sound feedback |
-| Icons | `AppIcon.icns` | Application icon |
-| Templates | `*.jinja` (deepseek, gpt-oss, llama, mistral, phi, ministral) | LLM prompt templates |
-| Frameworks | `Frameworks/`, `*.bundle/` | Pre-compiled dependencies |
+| Type | Path | Purpose |
+|------|------|---------|
+| Hero Image | `assets/images/hero-banner.png` | README hero banner |
+
+### Legacy Bundle (`SW/Contents/Resources/`)
+
+Pre-built PyInstaller bundle from original Gemini build. Contains audio files (Start/Stop/noResult .m4a), AppIcon.icns, LLM prompt templates (.jinja), and compiled frameworks.
 
 ---
 
@@ -201,40 +229,27 @@ DATA FLOW:
 
 | Issue | Type | Severity | Description |
 |-------|------|----------|-------------|
-| pyobjc Python 3.13 | Compatibility | **HIGH** | Circular import error with objc module. HUD overlay visible to screen sharing. Workaround: Use Python 3.12. |
-| torchcodec FFmpeg | Compatibility | **MEDIUM** | FFmpeg 8.0.1 installed but torchcodec only supports v4-7. Speaker diarization may have issues. |
-| `utils/history.py` | Orphaned Code | **LOW** | Module defined but never imported. References non-existent `get_data_path()` from `utils.config`. Will fail if imported. |
-| Missing Tests | Gap | **MEDIUM** | Test infrastructure ready (conftest.py fixtures, test_example.py stub) but no production tests written. |
-| No CI/CD | Gap | **LOW** | No GitHub Actions workflows configured. |
+| `utils/history.py` | Orphaned Code | **LOW** | Module defined but never imported. References non-existent `get_data_path()`. |
+| pyobjc Python 3.13 | Compatibility | **LOW** | Circular import with objc module. Mitigated by using Quartz Event Tap instead of Carbon. |
+| torchcodec FFmpeg | Compatibility | **LOW** | FFmpeg 8.x installed but torchcodec supports v4-7. Affects diarization (currently hidden). |
+| No CI/CD | Gap | **LOW** | No GitHub Actions workflows configured yet. |
 
 ---
 
 ## Development Status
 
-| Phase | Name | Status | Description |
-|-------|------|--------|-------------|
-| 0 | Initialization | **Complete** | Blueprint approved, task plan created |
-| 1 | Blueprint | **Complete** | Data schemas, behavioral rules defined in gemini.md |
-| 2 | Link | **Complete** | File structure, requirements.txt, pyproject.toml |
-| 3 | Architect | **Complete** | Hardware detection, audio pipeline, permissions, GUI |
-| 4 | Stylize | **Complete** | All 4 modes implemented, data management, ChromaDB |
-| 5 | Trigger | **In Progress** | PyInstaller bundling, integration tests, final delivery |
+| Phase | Name | Status |
+|-------|------|--------|
+| 1 | Foundation | **Complete** |
+| 2 | Core Features | **Complete** |
+| 3 | GUI & UX | **Complete** |
+| 4 | AI Integration | **Complete** |
+| 5 | Bundling | **Complete** (code signing deferred) |
+| 6 | Push-to-Talk Intelligence | **Complete** |
+| 7 | UI Simplification | **Complete** |
+| 8 | Portfolio Release | **In Progress** |
 
-**Overall Maturity**: Alpha — Core functionality implemented, bundling in progress.
-
----
-
-## Roadmap
-
-See [task_plan.md](./task_plan.md) for phase breakdown and [_project/DevPlan.md](./_project/DevPlan.md) for architecture and task tracker.
-
-| Priority | Item | Status |
-|----------|------|--------|
-| P0 | Fix Python 3.13 pyobjc issue | Blocked (upstream) |
-| P1 | Complete PyInstaller bundling | In Progress |
-| P2 | Write unit tests | Not Started |
-| P3 | Add CI/CD workflows | Not Started |
-| P4 | Resolve FFmpeg/torchcodec mismatch | Not Started |
+**Overall Maturity**: Active development — Push-to-talk operational with 76 tests.
 
 ---
 
@@ -244,9 +259,6 @@ See [task_plan.md](./task_plan.md) for phase breakdown and [_project/DevPlan.md]
 
 ```bash
 # Development mode
-./run_dev.sh
-
-# Or manually
 source .venv/bin/activate
 PYTHONPATH=src python -m tommy_talker.main
 
@@ -255,7 +267,6 @@ tommytalker
 
 # Build macOS .app
 ./build.sh
-# Output: dist/TommyTalker.app
 ```
 
 ### Testing
@@ -263,15 +274,14 @@ tommytalker
 ```bash
 pytest tests/ -v
 pytest tests/ --cov=src/tommy_talker --cov-report=term-missing
+mutmut run  # Mutation testing
 ```
 
-### Default Hotkeys
+### Hotkey
 
-| Hotkey | Action |
-|--------|--------|
-| `Cmd+Shift+Space` | Cursor Mode (live transcription) |
-| `Cmd+Shift+R` | Toggle Recording |
-| `Cmd+Shift+D` | Open Dashboard |
+| Action | Key |
+|--------|-----|
+| Push-to-Talk | **Right Command** (hold to record, release to paste) |
 
 ### Key Entry Points
 
@@ -280,7 +290,7 @@ pytest tests/ --cov=src/tommy_talker --cov-report=term-missing
 | `src/tommy_talker/main.py:main()` | Application launch |
 | `src/tommy_talker/gui/menu_bar.py` | System tray (PyQt6) |
 | `src/tommy_talker/gui/dashboard.py` | Settings UI (PyQt6) |
-| Global hotkeys | Carbon/Quartz events |
+| Quartz Event Tap | Global hotkey events |
 
 ### Configuration Files
 
@@ -304,30 +314,27 @@ pytest tests/ --cov=src/tommy_talker --cov-report=term-missing
 
 ## Technology Stack
 
-| Component | Technology | Version/Detail |
-|-----------|------------|----------------|
-| Language | Python | 3.12+ (3.13 has pyobjc issues) |
+| Component | Technology | Detail |
+|-----------|------------|--------|
+| Language | Python | 3.12+ |
 | GUI Framework | PyQt6 | 6.6.0+ |
-| Speech-to-Text | mlx-whisper | Apple Silicon optimized |
-| LLM (Local) | Ollama | 0.1.0+ |
+| Speech-to-Text | mlx-whisper | Apple Silicon Metal-accelerated |
+| LLM (Local) | Ollama | phi-3, llama-3-8b |
 | LLM (Cloud) | httpx | OpenAI-compatible APIs |
+| Hotkeys | Quartz Event Tap | Modifier-only key support |
 | Diarization | pyannote.audio | 3.1+ (HF token required) |
 | Vector Store | ChromaDB | 0.4.0+ |
 | Database | SQLite | Standard library |
-| Audio I/O | sounddevice, soundfile | 0.4.6+, 0.12.1+ |
-| Hardware Detection | psutil | 5.9.0+ |
-| Text Input | pyautogui | 0.9.54+ |
-| macOS Integration | pyobjc-framework-Cocoa/Quartz | 10.0+ |
-| Credentials | python-dotenv | 1.0.0+ |
-| Build | PyInstaller | Via TommyTalker.spec |
-
-### Hardware Tiers
-
-| Tier | RAM | Recommended Model | Use Case |
-|------|-----|-------------------|----------|
-| 1 | <16GB | Small/quantized | Basic transcription |
-| 2 | 16-32GB | Medium | Full features |
-| 3 | >32GB | Large | Maximum quality |
+| Audio I/O | sounddevice, soundfile | Recording + WAV output |
+| Hardware Detection | psutil | RAM/chip tier detection |
+| Text Input | pyautogui | Clipboard + keyboard simulation |
+| macOS Integration | pyobjc | Cocoa + Quartz frameworks |
+| Credentials | macOS Keychain | Via secure_credentials.py |
+| Build | PyInstaller | TommyTalker.spec |
+| Testing | pytest | 76 tests + mutmut mutation testing |
+| Formatting | black | 100 char line length |
+| Linting | ruff | E, F, I, N, W rules |
+| Security | security_scan.sh | 9-phase scanner (v4) |
 
 ---
 
@@ -340,7 +347,7 @@ Files that exist at runtime but are gitignored:
 | Virtual env | `.venv/`, `venv/` | Python dependencies |
 | Python cache | `__pycache__/`, `*.pyc` | Compiled bytecode |
 | Build artifacts | `build/`, `dist/` | PyInstaller output |
-| App bundle assets | `SW/` | Pre-compiled frameworks, audio, icons, templates |
+| Legacy bundle | `SW/` | Pre-compiled frameworks, audio, icons, templates |
 | Logs | `*.log` | Application logs |
 | Runtime data | `data/` | Local data directory |
 | Test cache | `.pytest_cache/`, `.coverage` | Test artifacts |
@@ -348,20 +355,26 @@ Files that exist at runtime but are gitignored:
 | ML models | `*.gguf`, `*.bin`, `*.safetensors` | Large model files |
 | Secrets | `.env`, `*.pem`, `*.key` | Credentials |
 | User data | `~/Documents/TommyTalker/` | Config, sessions, recordings, embeddings |
+| Agent sessions | `sessions/` | Agent coordination files |
 
 ---
 
-## Project Templates Integration
+## _HQ Integration
 
-**Status**: This project is registered in `Tech_Projects/_HQ/SYNC_STATUS.yaml` (as of 2026-02-04).
+**Status**: Registered in `~/Tech_Projects/_HQ/SYNC_STATUS.yaml` since 2026-02-04.
 
-**Relevant guides** (based on project features):
-- `Tech_Projects/_HQ/guides/universal/LOGGING.md` — Structured logging patterns
-- `Tech_Projects/_HQ/guides/universal/ERROR_HANDLING.md` — Exception hierarchies
-- `Tech_Projects/_HQ/guides/universal/TESTING.md` — Testing strategy
-- `Tech_Projects/_HQ/guides/universal/APPLE_SILICON.md` — Apple Silicon optimization
-- `Tech_Projects/_HQ/guides/universal/ENV_CONFIGURATION.md` — .env patterns
-- `Tech_Projects/_HQ/guides/universal/RAG_HITL_PIPELINE.md` — RAG pipeline patterns
+**Visibility**: PUBLIC — private _HQ assets are skipped during sync.
+
+**Synced assets**: All standards (TDD v2, Security, Conventions, Commit Format, Project Structure), all public guides, security scanner v4, evaluation references, agent integration templates.
+
+**Available commands**: `/gogogo` (session startup + sync), `/wrapup` (session close), `/start-here` (update this file), `/commit` (security scan + commit)
+
+**Relevant guides**:
+- `~/Tech_Projects/_HQ/guides/universal/APPLE_SILICON.md`
+- `~/Tech_Projects/_HQ/guides/universal/LOGGING.md`
+- `~/Tech_Projects/_HQ/guides/universal/TESTING.md`
+- `~/Tech_Projects/_HQ/guides/universal/ERROR_HANDLING.md`
+- `~/Tech_Projects/_HQ/guides/universal/ENV_CONFIGURATION.md`
 
 ---
 
@@ -369,15 +382,14 @@ Files that exist at runtime but are gitignored:
 
 | Metric | Value |
 |--------|-------|
-| Python Modules | 28 |
-| Lines of Code | ~6,350 |
-| Documentation Files | 12 .md files |
-| Operating Modes | 4 (Cursor, Editor, Meeting, HUD) |
-| Runtime Dependencies | 16 (requirements.txt) |
-| Dev Dependencies | 5+ (requirements-dev.txt) |
+| Python Source Files | 30 |
+| Test Files | 5 + conftest.py |
+| Tests Passing | 76 |
+| App Profiles | 97 |
+| Documentation Files | 12+ |
+| Runtime Dependencies | ~11 (pyproject.toml) |
+| Dev Dependencies | 7 (pyproject.toml) |
 | Orphaned Modules | 1 (`utils/history.py`) |
-| Test Files | 1 stub + conftest.py fixtures |
-| TODO/FIXME Comments | 0 |
 
 ---
 

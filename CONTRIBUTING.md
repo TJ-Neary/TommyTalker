@@ -12,7 +12,7 @@ Thank you for your interest in contributing to TommyTalker! We are building a pr
 
 1.  **Clone the repository**
     ```bash
-    git clone https://github.com/yourusername/TommyTalker.git
+    git clone https://github.com/TJ-Neary/TommyTalker.git
     cd TommyTalker
     ```
 
