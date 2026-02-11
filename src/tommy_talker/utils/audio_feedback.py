@@ -19,9 +19,9 @@ class AudioFeedback:
     # System sound paths on macOS
     SYSTEM_SOUNDS = Path("/System/Library/Sounds")
 
-    # Sound pools — round-robin rotation for variety
-    START_POOL = ["Tink.aiff", "Morse.aiff", "Ping.aiff", "Glass.aiff"]
-    STOP_POOL = ["Pop.aiff", "Bottle.aiff", "Purr.aiff", "Blow.aiff"]
+    # Sound pools
+    START_POOL = ["Blow.aiff"]
+    STOP_POOL = ["Blow.aiff"]
     NO_RESULT_POOL = ["Frog.aiff", "Submarine.aiff"]
     ERROR_POOL = ["Basso.aiff", "Funk.aiff", "Sosumi.aiff"]
 
