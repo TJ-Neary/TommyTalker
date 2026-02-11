@@ -63,11 +63,11 @@ class LLMClient:
     
     # System prompts for different tasks
     PROMPTS = {
-        "professional": """You are a professional writing assistant. 
+        "professional": """You are a professional writing assistant.
 Rewrite the following text to be more professional, clear, and well-structured.
 Maintain the original meaning but improve grammar, clarity, and tone.
 Output ONLY the rewritten text, no explanations.""",
-        
+
         "with_style_guide": """You are a professional writing assistant.
 Rewrite the following text according to these style guidelines:
 
@@ -75,6 +75,54 @@ Rewrite the following text according to these style guidelines:
 
 Maintain the original meaning but follow the style guide exactly.
 Output ONLY the rewritten text, no explanations.""",
+    }
+
+    # App-context-aware prompts keyed by TextInputFormat value
+    APP_CONTEXT_PROMPTS = {
+        "code": """You are a code-aware writing assistant.
+Rewrite the dictated text as code comments, docstrings, or variable/function names as appropriate.
+Preserve technical terms, acronyms, and code identifiers exactly.
+If the text sounds like a code description, format it as a comment for the relevant language.
+Output ONLY the formatted text, no explanations.""",
+
+        "chat_message": """You are a messaging assistant.
+Rewrite the dictated text as a casual, conversational chat message.
+Keep it brief and natural. Fix grammar but maintain informal tone.
+Do not add greetings or sign-offs unless the speaker included them.
+Output ONLY the message text, no explanations.""",
+
+        "email": """You are an email writing assistant.
+Rewrite the dictated text as a professional email.
+Include appropriate greeting and sign-off if the speaker implied them.
+Maintain professional tone with clear, concise paragraphs.
+Output ONLY the email text, no explanations.""",
+
+        "terminal_command": """You are a command-line assistant.
+Extract the terminal command from the dictated text.
+Remove filler words, pleasantries, and explanations.
+Output ONLY the command(s), one per line, no explanations or markdown.""",
+
+        "markdown": """You are a Markdown writing assistant.
+Rewrite the dictated text using proper Markdown formatting.
+Use headers, lists, bold, italic, and code blocks as appropriate.
+Output ONLY the Markdown text, no explanations.""",
+
+        "search_query": """You are a search query assistant.
+Extract the key search terms from the dictated text.
+Remove filler words, articles, and unnecessary context.
+Output a concise search query, no explanations.""",
+
+        "document_text": """You are a document writing assistant.
+Rewrite the dictated text as polished document prose.
+Use clear, well-structured sentences with proper paragraph breaks.
+Maintain formal tone appropriate for written documents.
+Output ONLY the polished text, no explanations.""",
+
+        "spreadsheet_formula": """You are a spreadsheet assistant.
+Convert the dictated text into a spreadsheet formula or cell value.
+If the text describes a calculation, output the formula (e.g., =SUM(A1:A10)).
+If it's just data, clean it up for cell entry.
+Output ONLY the formula or value, no explanations.""",
     }
     
     def __init__(self, tier: int = 2, custom_model: Optional[str] = None,
@@ -149,7 +197,45 @@ Output ONLY the rewritten text, no explanations.""",
             return self._rewrite_cloud(text, system_prompt)
         else:
             return self._rewrite_local(text, system_prompt)
-            
+
+    def rewrite_for_context(self, text: str, app_context) -> Optional[RewriteResult]:
+        """
+        Rewrite text using an app-context-aware prompt.
+
+        Args:
+            text: Text to rewrite
+            app_context: AppContext with target app info
+
+        Returns:
+            RewriteResult or None. Falls back to rewrite_professional() if no
+            specific prompt exists for this format.
+        """
+        fmt_value = app_context.text_input_format.value
+
+        base_prompt = self.APP_CONTEXT_PROMPTS.get(fmt_value)
+        if not base_prompt:
+            return self.rewrite_professional(text)
+
+        # Build the system prompt
+        system_prompt = base_prompt
+
+        # Append style guide if loaded
+        if self.style_guide:
+            system_prompt += f"\n\nAdditional style guide:\n{self.style_guide}"
+
+        # Append app context hint
+        app_hint = f"\nContext: typing in {app_context.app_name}"
+        if app_context.profile:
+            app_hint += f" ({app_context.profile.category})"
+        system_prompt += app_hint
+
+        print(f"[LLMClient] Using {fmt_value} prompt for {app_context.app_name}")
+
+        if self.cloud_mode and self.cloud_config.get("api_key"):
+            return self._rewrite_cloud(text, system_prompt)
+        else:
+            return self._rewrite_local(text, system_prompt)
+
     def _rewrite_local(self, text: str, system_prompt: str) -> Optional[RewriteResult]:
         """Rewrite using local Ollama."""
         if not HAS_OLLAMA:

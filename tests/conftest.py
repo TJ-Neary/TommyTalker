@@ -71,7 +71,6 @@ def mock_hardware():
         chip_type="M4 Max",
         ram_gb=48,
         tier=3,
-        gpu_cores=40,
         whisper_model="large-v3-turbo",
         llm_model="qwen2.5:32b",
         diarization_enabled=True

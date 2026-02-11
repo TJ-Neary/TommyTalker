@@ -55,6 +55,9 @@ tommytalker = "tommy_talker.main:main"
 where = ["src"]
 include = ["tommy_talker*"]
 
+[tool.setuptools.package-data]
+tommy_talker = ["data/*.json"]
+
 [tool.black]
 line-length = 100
 target-version = ["py312"]
