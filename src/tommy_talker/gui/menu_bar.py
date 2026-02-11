@@ -24,7 +24,7 @@ class MenuBarApp(QObject):
         self.config = config
         self.hardware = hardware
         self.is_recording = False
-        self.current_mode = config.default_mode
+        self.current_mode = "cursor"
         
         # Create system tray icon
         self.tray_icon = QSystemTrayIcon()
@@ -79,30 +79,11 @@ class MenuBarApp(QObject):
         """Create the dropdown menu."""
         menu = QMenu()
         
-        # Current mode indicator
-        self.mode_status_action = QAction(f"Mode: {self.current_mode.upper()}", menu)
-        self.mode_status_action.setEnabled(False)
-        menu.addAction(self.mode_status_action)
-        
         # Recording status
         self.recording_status_action = QAction("🔴 Recording..." if self.is_recording else "⚪ Idle", menu)
         self.recording_status_action.setEnabled(False)
         menu.addAction(self.recording_status_action)
-        
-        menu.addSeparator()
-        
-        # Mode selection
-        modes_menu = menu.addMenu("🎤 Mode")
-        
-        self.mode_actions = {}
-        for mode in ["cursor", "editor", "scribe", "hud"]:
-            action = QAction(mode.title(), modes_menu)
-            action.setCheckable(True)
-            action.setChecked(mode == self.current_mode)
-            action.triggered.connect(lambda checked, m=mode: self._set_mode(m))
-            modes_menu.addAction(action)
-            self.mode_actions[mode] = action
-        
+
         menu.addSeparator()
         
         # Recording toggle
@@ -130,7 +111,6 @@ class MenuBarApp(QObject):
         """Change the current operating mode."""
         self.current_mode = mode
         self.mode_changed_signal.emit(mode)
-        self._update_menu()
         print(f"[MenuBar] Mode changed to: {mode}")
         
     def _toggle_recording(self):
@@ -153,19 +133,9 @@ class MenuBarApp(QObject):
         self.record_action.setText("🔴 Stop Recording" if self.is_recording else "🎙️ Start Recording")
         self.recording_status_action.setText("🔴 Recording..." if self.is_recording else "⚪ Idle")
         
-    def _update_menu(self):
-        """Update menu to reflect current state."""
-        # Update mode status
-        self.mode_status_action.setText(f"Mode: {self.current_mode.upper()}")
-        
-        # Update mode checkmarks
-        for mode, action in self.mode_actions.items():
-            action.setChecked(mode == self.current_mode)
-            
     def update_mode(self, mode: str):
         """Update the current mode (called from outside)."""
         self.current_mode = mode
-        self._update_menu()
         
     def show(self):
         """Show the tray icon."""

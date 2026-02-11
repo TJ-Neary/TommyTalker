@@ -15,9 +15,6 @@ BASE_DATA_DIR = Path.home() / "Documents" / "TommyTalker"
 # Default configuration values - user-friendly hotkeys
 DEFAULT_HOTKEYS = {
     "cursor_mode": "RightCmd",
-    "editor_mode": "Ctrl+/",
-    "meeting_mode": "Option+M",
-    "hud_mode": "Option+H",
     "toggle_record": "Option+R",
     "open_dashboard": "Option+D",
 }
