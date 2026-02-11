@@ -8,14 +8,16 @@ from typing import Optional
 from dataclasses import dataclass
 import uuid
 
-# ChromaDB import
+# ChromaDB import — catch both ImportError and runtime init failures
+# (pydantic v1 crashes on Python 3.14+)
 try:
     import chromadb
     from chromadb.config import Settings
     HAS_CHROMADB = True
-except ImportError:
+except Exception:
     HAS_CHROMADB = False
-    print("[WARNING] chromadb not installed - RAG features disabled")
+    chromadb = None  # type: ignore[assignment]
+    print("[WARNING] chromadb not available - RAG features disabled")
 
 
 @dataclass
@@ -53,7 +55,7 @@ class RAGStore:
             db_path: Path to ChromaDB storage directory
         """
         self.db_path = db_path
-        self._client: Optional[chromadb.PersistentClient] = None
+        self._client = None
         self._collection = None
         
         if not HAS_CHROMADB:

@@ -4,6 +4,7 @@ TommyTalker - Privacy-First Voice Intelligence Suite
 Main entry point for the macOS application.
 """
 
+import signal
 import sys
 from pathlib import Path
 
@@ -36,6 +37,9 @@ def main():
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)  # Keep running in menu bar
     app.setApplicationName("TommyTalker")
+
+    # Allow Ctrl+C to quit (Qt event loop swallows SIGINT by default)
+    signal.signal(signal.SIGINT, lambda *_: app.quit())
     
     # Ensure data directories exist
     ensure_data_dirs()

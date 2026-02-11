@@ -544,7 +544,7 @@ class DashboardWindow(QMainWindow):
         self.logging_cb.setChecked(self.config.logging_enabled)
         logging_layout.addWidget(self.logging_cb)
         
-        from utils.config import BASE_DATA_DIR
+        from tommy_talker.utils.config import BASE_DATA_DIR
         log_path = BASE_DATA_DIR / "logs"
         log_path_label = QLabel(f"Log location: {log_path}")
         log_path_label.setStyleSheet("color: gray; font-size: 10px;")
