@@ -17,6 +17,9 @@
 
 set -euo pipefail
 
+# Scanner version — bump when checks change. Used by /commit to detect outdated scanners.
+SCANNER_VERSION="4"
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
@@ -39,6 +42,7 @@ for arg in "$@"; do
     case $arg in
         --staged) MODE="staged" ;;
         --fix)    SHOW_FIX=true ;;
+        --version) echo "security_scan.sh v${SCANNER_VERSION}"; exit 0 ;;
         --help|-h)
             echo "Usage: $0 [--staged] [--fix]"
             echo "  --staged  Scan only staged changes (for pre-commit hook)"
@@ -85,6 +89,14 @@ get_files() {
     fi
 }
 
+get_content() {
+    if [ "$MODE" = "staged" ]; then
+        git diff --cached -U0 2>/dev/null || true
+    else
+        cat "$1" 2>/dev/null || true
+    fi
+}
+
 # ---------------------------------------------------------------------------
 # Banner
 # ---------------------------------------------------------------------------
@@ -99,33 +111,39 @@ echo ""
 # ---------------------------------------------------------------------------
 # 1. API Keys & Secrets
 # ---------------------------------------------------------------------------
-echo -e "${BOLD}[1/7] Scanning for API keys and secrets...${NC}"
+echo -e "${BOLD}[1/9] Scanning for API keys and secrets...${NC}"
 
 SECRET_PATTERNS=(
     'sk-[a-zA-Z0-9]{20,}'                           # OpenAI keys
     'sk-proj-[a-zA-Z0-9]{20,}'                      # OpenAI project keys
-    'hf_[a-zA-Z0-9]{20,}'                           # HuggingFace tokens
     'AKIA[0-9A-Z]{16}'                               # AWS access key IDs
     'ghp_[a-zA-Z0-9]{36}'                            # GitHub personal tokens
     'gho_[a-zA-Z0-9]{36}'                            # GitHub OAuth tokens
     'github_pat_[a-zA-Z0-9_]{22,}'                   # GitHub fine-grained tokens
     'xox[bsp]-[a-zA-Z0-9\-]{10,}'                   # Slack tokens
     'AIza[0-9A-Za-z\-_]{35}'                         # Google API keys
+    'ya29\.[0-9A-Za-z\-_]+'                          # Google OAuth tokens
+    'GOCSPX-[a-zA-Z0-9\-_]+'                        # Google client secrets
+    'eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*\.'       # JWT tokens
+    'ssh-rsa\s+AAAA'                                 # SSH private keys
     'BEGIN (RSA |DSA |EC )?PRIVATE KEY'              # PEM private keys
+    'BEGIN CERTIFICATE'                               # Certificates
     'password\s*=\s*["\x27][^"\x27]{8,}["\x27]'     # Hardcoded passwords
     'secret\s*=\s*["\x27][^"\x27]{8,}["\x27]'       # Hardcoded secrets
+    'token\s*=\s*["\x27][^"\x27]{20,}["\x27]'       # Hardcoded tokens
 )
 
 while IFS= read -r file; do
     [[ "$file" =~ \.(png|jpg|jpeg|gif|ico|woff|ttf|eot|svg|pyc|so|db|sqlite)$ ]] && continue
     [ ! -f "$file" ] && continue
     [[ "$file" =~ ^tests/ ]] && continue
+    [[ "$file" =~ privacy_audit\.py$ ]] && continue
     [[ "$file" =~ security_scan\.sh$ ]] && continue
 
     for pattern in "${SECRET_PATTERNS[@]}"; do
         matches=$(grep -nEi "$pattern" "$file" 2>/dev/null | head -5 || true)
         if [ -n "$matches" ]; then
-            if ! echo "$matches" | grep -qiE '(example|template|placeholder|your-key-here|CHANGE_ME)'; then
+            if ! echo "$matches" | grep -qiE '(example|template|placeholder|your-key-here|your.key|CHANGE_ME)'; then
                 finding "CRITICAL" "Secret/API Key" "$file" \
                     "Possible secret matching pattern: ${pattern:0:40}..." \
                     "Move to .env (gitignored) and load via os.getenv()"
@@ -137,33 +155,36 @@ done < <(get_files)
 # ---------------------------------------------------------------------------
 # 2. Hardcoded User Paths
 # ---------------------------------------------------------------------------
-echo -e "${BOLD}[2/7] Scanning for hardcoded user paths...${NC}"
+echo -e "${BOLD}[2/9] Scanning for hardcoded user paths...${NC}"
 
 while IFS= read -r file; do
     [[ "$file" =~ \.(png|jpg|jpeg|gif|ico|woff|ttf|eot|svg|pyc|so|db|sqlite)$ ]] && continue
     [ ! -f "$file" ] && continue
 
     matches=$(grep -nE '/Users/[a-z][a-z0-9_.-]+/' "$file" 2>/dev/null \
-        | grep -vE '(/Users/yourname/|/Users/user/|/Users/test/|\$HOME|Path\.home|os\.path\.expanduser|example|placeholder)' \
+        | grep -vE '(/Users/yourname/|/Users/user/|/Users/test/|\$HOME|Path\.home|os\.path\.expanduser|SCRIPT_DIR|example|placeholder)' \
         | head -5 || true)
 
     if [ -n "$matches" ]; then
         finding "HIGH" "Hardcoded User Path" "$file" \
             "$(echo "$matches" | head -1)" \
-            "Use Path.home(), \$HOME, or os.path.expanduser() instead"
+            "Use Path.home(), \$HOME, or SCRIPT_DIR instead of absolute user paths"
     fi
 done < <(get_files)
 
 # ---------------------------------------------------------------------------
 # 3. PII Patterns
 # ---------------------------------------------------------------------------
-echo -e "${BOLD}[3/7] Scanning for PII patterns...${NC}"
+echo -e "${BOLD}[3/9] Scanning for PII patterns...${NC}"
 
 while IFS= read -r file; do
     [[ "$file" =~ \.(png|jpg|jpeg|gif|ico|woff|ttf|eot|svg|pyc|so|db|sqlite)$ ]] && continue
     [ ! -f "$file" ] && continue
     [[ "$file" =~ ^tests/ ]] && continue
     [[ "$file" =~ security_scan\.sh$ ]] && continue
+    [[ "$file" =~ pii_terms\.example ]] && continue
+    [[ "$file" =~ SECURITY\.md$ ]] && continue
+    [[ "$file" =~ \.security_terms\.example$ ]] && continue
 
     # SSN pattern
     matches=$(grep -nE '\b[0-9]{3}-[0-9]{2}-[0-9]{4}\b' "$file" 2>/dev/null \
@@ -177,19 +198,39 @@ while IFS= read -r file; do
 
     # Email addresses
     matches=$(grep -nEio '\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b' "$file" 2>/dev/null \
-        | grep -viE '(example\.com|example\.org|test\.com|noreply@|placeholder|user@|john\.doe)' \
+        | grep -viE '(example\.com|example\.org|test\.com|noreply@|placeholder|user@|john\.doe|jane\.doe|foo@bar)' \
         | head -3 || true)
     if [ -n "$matches" ]; then
         finding "HIGH" "Real Email Address" "$file" \
             "$(echo "$matches" | head -1)" \
-            "Replace with user@example.com"
+            "Replace with user@example.com or similar placeholder"
+    fi
+
+    # Phone numbers
+    matches=$(grep -nE '\b(\+1[-.]?)?\(?[0-9]{3}\)?[-. ][0-9]{3}[-. ][0-9]{4}\b' "$file" 2>/dev/null \
+        | grep -vE '(example|555-|000-|123-456|format|regex|pattern|detect|test)' \
+        | head -3 || true)
+    if [ -n "$matches" ]; then
+        finding "MEDIUM" "Possible Phone Number" "$file" \
+            "$(echo "$matches" | head -1)" \
+            "Replace with (555) 555-0100 or similar placeholder"
+    fi
+
+    # Credit cards
+    matches=$(grep -nE '\b[0-9]{4}[- ]?[0-9]{4}[- ]?[0-9]{4}[- ]?[0-9]{4}\b' "$file" 2>/dev/null \
+        | grep -vE '(example|0000|1234|test|pattern|regex|detect|format|xxxx)' \
+        | head -3 || true)
+    if [ -n "$matches" ]; then
+        finding "CRITICAL" "Possible Credit Card" "$file" \
+            "$(echo "$matches" | head -1)" \
+            "Remove immediately"
     fi
 done < <(get_files)
 
 # ---------------------------------------------------------------------------
 # 4. Internal Project References
 # ---------------------------------------------------------------------------
-echo -e "${BOLD}[4/7] Scanning for internal/private references...${NC}"
+echo -e "${BOLD}[4/9] Scanning for internal/private references...${NC}"
 
 PRIVATE_TERMS_FILE="$PROJECT_ROOT/.security_terms"
 
@@ -207,48 +248,56 @@ if [ -f "$PRIVATE_TERMS_FILE" ]; then
             if [ -n "$matches" ]; then
                 finding "HIGH" "Private Reference" "$file" \
                     "Contains private term '${term}'" \
-                    "Replace with generic language"
+                    "Replace with generic language or move file to gitignored location"
             fi
         done < <(get_files)
     done < "$PRIVATE_TERMS_FILE"
 else
-    echo -e "  ${YELLOW}No .security_terms file found. Create one to scan for private terms.${NC}"
+    echo -e "  ${YELLOW}No .security_terms file found. Create one to scan for private names/terms.${NC}"
+    echo -e "  ${YELLOW}Format: one term per line (e.g., employer names, private project names).${NC}"
+    echo ""
 fi
 
 # ---------------------------------------------------------------------------
-# 5. Sensitive Files
+# 5. Sensitive Files That Should Be Gitignored
 # ---------------------------------------------------------------------------
-echo -e "${BOLD}[5/7] Checking for sensitive files that should be gitignored...${NC}"
+echo -e "${BOLD}[5/9] Checking for sensitive files that should be gitignored...${NC}"
 
-SENSITIVE_FILES=(".env" ".env.local" "secrets.json" "credentials.json")
+SENSITIVE_FILES=(
+    ".env"
+    ".env.local"
+    ".env.production"
+    "secrets.json"
+    "credentials.json"
+)
 
 while IFS= read -r file; do
     basename=$(basename "$file")
     for sensitive in "${SENSITIVE_FILES[@]}"; do
         if [ "$basename" = "$sensitive" ]; then
             finding "CRITICAL" "Sensitive File Tracked" "$file" \
-                "This file should be gitignored" \
-                "Run: git rm --cached '$file'"
+                "This file should be gitignored, not committed" \
+                "Run: git rm --cached '$file' && add to .gitignore"
         fi
     done
 done < <(get_files)
 
 # ---------------------------------------------------------------------------
-# 6. Database Files
+# 6. Database / Binary Files
 # ---------------------------------------------------------------------------
-echo -e "${BOLD}[6/7] Checking for database and log files...${NC}"
+echo -e "${BOLD}[6/9] Checking for database and binary files...${NC}"
 
 while IFS= read -r file; do
     case "$file" in
         *.db|*.sqlite|*.sqlite3)
             finding "HIGH" "Database File Tracked" "$file" \
-                "Database files shouldn't be committed" \
-                "Add to .gitignore"
+                "Database files contain runtime data and shouldn't be committed" \
+                "Add to .gitignore and run: git rm --cached '$file'"
             ;;
         *.log)
             finding "MEDIUM" "Log File Tracked" "$file" \
-                "Log files may contain sensitive data" \
-                "Add to .gitignore"
+                "Log files may contain PII or sensitive runtime data" \
+                "Add to .gitignore and run: git rm --cached '$file'"
             ;;
     esac
 done < <(get_files)
@@ -256,26 +305,112 @@ done < <(get_files)
 # ---------------------------------------------------------------------------
 # 7. Dangerous Code Patterns
 # ---------------------------------------------------------------------------
-echo -e "${BOLD}[7/7] Scanning for dangerous code patterns...${NC}"
+echo -e "${BOLD}[7/9] Scanning for dangerous code patterns...${NC}"
 
 while IFS= read -r file; do
     [[ "$file" =~ \.(py)$ ]] || continue
     [ ! -f "$file" ] && continue
+    [[ "$file" =~ (SECURITY|security_scan) ]] && continue
 
-    # shell=True with subprocess
+    # shell=True with variable input
     matches=$(grep -nE 'subprocess\.(run|call|Popen).*shell\s*=\s*True' "$file" 2>/dev/null | head -3 || true)
     if [ -n "$matches" ]; then
         finding "HIGH" "Shell Injection Risk" "$file" \
             "$(echo "$matches" | head -1)" \
-            "Use list args instead of shell=True"
+            "Use subprocess.run([...]) with list args instead of shell=True"
     fi
 
-    # verify=False on HTTPS
+    # verify=False on HTTPS requests
     matches=$(grep -nE 'verify\s*=\s*False' "$file" 2>/dev/null | head -3 || true)
     if [ -n "$matches" ]; then
         finding "MEDIUM" "SSL Verification Disabled" "$file" \
             "$(echo "$matches" | head -1)" \
-            "Remove verify=False"
+            "Remove verify=False to enable certificate verification"
+    fi
+
+    # Binding to 0.0.0.0
+    matches=$(grep -nE '(host\s*=\s*["\x27]0\.0\.0\.0|0\.0\.0\.0.*bind)' "$file" 2>/dev/null | head -3 || true)
+    if [ -n "$matches" ]; then
+        finding "MEDIUM" "Network-Exposed Server" "$file" \
+            "$(echo "$matches" | head -1)" \
+            "Bind to 127.0.0.1 for local-only access"
+    fi
+
+    # eval() or exec()
+    matches=$(grep -nE '\b(eval|exec)\s*\(' "$file" 2>/dev/null \
+        | grep -vE '(#|comment|test|example)' \
+        | head -3 || true)
+    if [ -n "$matches" ]; then
+        finding "HIGH" "Dynamic Code Execution" "$file" \
+            "$(echo "$matches" | head -1)" \
+            "Avoid eval()/exec() — use safer alternatives"
+    fi
+done < <(get_files)
+
+# ---------------------------------------------------------------------------
+# 8. Private Asset Visibility Check
+# ---------------------------------------------------------------------------
+echo -e "${BOLD}[8/9] Checking private asset visibility...${NC}"
+
+# Check if .hq-private/ exists but is NOT gitignored
+if [ -d "$PROJECT_ROOT/.hq-private" ]; then
+    if ! grep -qE '^\s*\.hq-private/?$' "$PROJECT_ROOT/.gitignore" 2>/dev/null; then
+        finding "CRITICAL" "Private Assets Exposed" ".hq-private/" \
+            ".hq-private/ directory exists but is NOT in .gitignore" \
+            "Add '.hq-private/' to .gitignore immediately"
+    fi
+fi
+
+# Check for files with HQ-VISIBILITY: private marker that are git-tracked
+while IFS= read -r file; do
+    [[ "$file" =~ \.(png|jpg|jpeg|gif|ico|woff|ttf|eot|svg|pyc|so|db|sqlite)$ ]] && continue
+    [ ! -f "$file" ] && continue
+
+    matches=$(grep -nE '# HQ-VISIBILITY:\s*private' "$file" 2>/dev/null | head -3 || true)
+    if [ -n "$matches" ]; then
+        finding "HIGH" "Private HQ Asset Tracked" "$file" \
+            "File contains HQ-VISIBILITY: private marker but is git-tracked" \
+            "Move to .hq-private/ (gitignored) or remove the file from version control"
+    fi
+done < <(get_files)
+
+# ---------------------------------------------------------------------------
+# 9. Commercial & Sensitivity Markers
+# ---------------------------------------------------------------------------
+echo -e "${BOLD}[9/9] Checking for commercial/sensitivity markers...${NC}"
+
+# Scan for COMMERCIAL:, SECURITY-CONFIG:, and PRIVATE-DATA: markers
+# These indicate code that should not be in a public repository.
+while IFS= read -r file; do
+    [[ "$file" =~ \.(png|jpg|jpeg|gif|ico|woff|ttf|eot|svg|pyc|so|db|sqlite)$ ]] && continue
+    [ ! -f "$file" ] && continue
+    [[ "$file" =~ security_scan\.sh$ ]] && continue
+    [[ "$file" =~ CLAUDE\.md$ ]] && continue
+    [[ "$file" =~ SECURITY\.md$ ]] && continue
+    [[ "$file" =~ CONVENTIONS\.md$ ]] && continue
+
+    # COMMERCIAL marker
+    matches=$(grep -nE '#\s*COMMERCIAL:' "$file" 2>/dev/null | head -3 || true)
+    if [ -n "$matches" ]; then
+        finding "HIGH" "Commercial IP Marker" "$file" \
+            "$(echo "$matches" | head -1)" \
+            "This file contains proprietary business logic. Keep in private repo or remove the marked code."
+    fi
+
+    # SECURITY-CONFIG marker
+    matches=$(grep -nE '#\s*SECURITY-CONFIG:' "$file" 2>/dev/null | head -3 || true)
+    if [ -n "$matches" ]; then
+        finding "MEDIUM" "Security Config to Externalize" "$file" \
+            "$(echo "$matches" | head -1)" \
+            "Move hardcoded detection rules to a gitignored config file and load at runtime."
+    fi
+
+    # PRIVATE-DATA marker
+    matches=$(grep -nE '#\s*PRIVATE-DATA:' "$file" 2>/dev/null | head -3 || true)
+    if [ -n "$matches" ]; then
+        finding "HIGH" "Private Data Reference" "$file" \
+            "$(echo "$matches" | head -1)" \
+            "Ensure private data is loaded from gitignored config, not committed to repo."
     fi
 done < <(get_files)
 
@@ -284,12 +419,16 @@ done < <(get_files)
 # ---------------------------------------------------------------------------
 echo -e "${BOLD}========================================${NC}"
 if [ "$FINDINGS" -eq 0 ]; then
-    echo -e "${GREEN}${BOLD} CLEAN - No security findings${NC}"
+    echo -e "${GREEN}${BOLD} CLEAN — No security findings detected${NC}"
     echo -e "${BOLD}========================================${NC}"
+    echo ""
     exit 0
 else
     echo -e "${RED}${BOLD} FOUND ${FINDINGS} ISSUE(S)${NC}"
     echo -e "${BOLD}========================================${NC}"
-    echo -e "Run with ${CYAN}--fix${NC} to see remediation suggestions."
+    echo ""
+    echo -e "Run with ${CYAN}--fix${NC} flag to see suggested remediation."
+    echo -e "See ${CYAN}Security/SECURITY.md${NC} for full security guidelines."
+    echo ""
     exit 1
 fi
