@@ -309,20 +309,11 @@ class HotkeysPage(QWizardPage):
         form.setSpacing(10)
         
         self.hotkey_cursor = HotkeySelector(self.config.hotkeys.get("cursor_mode", DEFAULT_HOTKEYS["cursor_mode"]))
-        form.addRow("Cursor Mode:", self.hotkey_cursor)
-        
-        self.hotkey_editor = HotkeySelector(self.config.hotkeys.get("editor_mode", DEFAULT_HOTKEYS["editor_mode"]))
-        form.addRow("Editor Mode:", self.hotkey_editor)
-        
-        self.hotkey_meeting = HotkeySelector(self.config.hotkeys.get("meeting_mode", DEFAULT_HOTKEYS["meeting_mode"]))
-        form.addRow("Meeting Mode:", self.hotkey_meeting)
-        
-        self.hotkey_hud = HotkeySelector(self.config.hotkeys.get("hud_mode", DEFAULT_HOTKEYS["hud_mode"]))
-        form.addRow("HUD Mode:", self.hotkey_hud)
-        
+        form.addRow("Push-to-Talk:", self.hotkey_cursor)
+
         self.hotkey_record = HotkeySelector(self.config.hotkeys.get("toggle_record", DEFAULT_HOTKEYS["toggle_record"]))
         form.addRow("Toggle Recording:", self.hotkey_record)
-        
+
         self.hotkey_dashboard = HotkeySelector(self.config.hotkeys.get("open_dashboard", DEFAULT_HOTKEYS["open_dashboard"]))
         form.addRow("Open Dashboard:", self.hotkey_dashboard)
         
@@ -387,9 +378,6 @@ class HotkeysPage(QWizardPage):
         """Get configured hotkeys."""
         return {
             "cursor_mode": self.hotkey_cursor.get_hotkey(),
-            "editor_mode": self.hotkey_editor.get_hotkey(),
-            "meeting_mode": self.hotkey_meeting.get_hotkey(),
-            "hud_mode": self.hotkey_hud.get_hotkey(),
             "toggle_record": self.hotkey_record.get_hotkey(),
             "open_dashboard": self.hotkey_dashboard.get_hotkey(),
         }
@@ -574,12 +562,8 @@ class CompletePage(QWizardPage):
         if wizard and hasattr(wizard, 'hotkeys_page'):
             hotkeys = wizard.hotkeys_page.get_hotkeys()
             
-            # More compact format - 2 per line
             hotkey_text = "⌨️ <b>Your Hotkeys:</b><br>"
-            hotkey_text += f"<b>{hotkeys.get('cursor_mode', '?')}</b> Cursor  •  "
-            hotkey_text += f"<b>{hotkeys.get('editor_mode', '?')}</b> Editor  •  "
-            hotkey_text += f"<b>{hotkeys.get('meeting_mode', '?')}</b> Meeting<br>"
-            hotkey_text += f"<b>{hotkeys.get('hud_mode', '?')}</b> HUD  •  "
+            hotkey_text += f"<b>{hotkeys.get('cursor_mode', '?')}</b> Push-to-Talk  •  "
             hotkey_text += f"<b>{hotkeys.get('toggle_record', '?')}</b> Record  •  "
             hotkey_text += f"<b>{hotkeys.get('open_dashboard', '?')}</b> Dashboard"
             

@@ -12,9 +12,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QThread, QTimer
 from PyQt6.QtGui import QFont
 
-from tommy_talker.utils.config import UserConfig, DEFAULT_HOTKEYS
+from tommy_talker.utils.config import UserConfig
 from tommy_talker.utils.hardware_detect import HardwareProfile
-from tommy_talker.gui.hotkey_selector import HotkeySelector
 from tommy_talker.utils.secure_credentials import (
     store_cloud_api_key, get_cloud_api_key,
     store_cloud_base_url, get_cloud_base_url,
@@ -127,16 +126,10 @@ class DashboardWindow(QMainWindow):
         
         layout.addWidget(status_frame)
         
-        # Mode cards - all hotkeys read from config
+        # Mode cards
         modes = [
-            ("cursor", "🎤 Cursor Mode", "Live transcription → Types at your cursor", 
-             self.config.hotkeys.get("cursor_mode", "Ctrl+Shift+Space")),
-            ("editor", "✍️ Editor Mode", "Record → LLM rewrites → Pastes result", 
-             self.config.hotkeys.get("editor_mode", "Ctrl+Shift+E")),
-            ("meeting", "📝 Meeting Mode", "Meeting assistant with speaker diarization", 
-             self.config.hotkeys.get("meeting_mode", "Ctrl+Shift+M")),
-            ("hud", "👁️ HUD Mode", "Transparent overlay (screen-share invisible)", 
-             self.config.hotkeys.get("hud_mode", "Ctrl+Shift+H")),
+            ("cursor", "🎤 Cursor Mode", "Hold Right Command → Speak → Release to paste",
+             self.config.hotkeys.get("cursor_mode", "RightCmd")),
         ]
         
         self.mode_buttons = {}
@@ -385,87 +378,13 @@ class DashboardWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
-        # Hotkeys section - using dropdown selectors
-        hotkeys_group = QGroupBox("⌨️ Global Hotkeys")
-        hotkeys_layout = QVBoxLayout(hotkeys_group)
-        
-        hotkey_info = QLabel("Select modifier keys and final key for each hotkey:")
-        hotkey_info.setStyleSheet("color: gray; font-size: 11px;")
-        hotkey_info.setWordWrap(True)
-        hotkeys_layout.addWidget(hotkey_info)
-        
-        # Use grid layout for cleaner display (2 columns: label | selector)
-        from PyQt6.QtWidgets import QGridLayout
-        hotkey_grid = QGridLayout()
-        hotkey_grid.setSpacing(8)
-        
-        # Mode hotkeys using dropdown selectors - stacked in grid
-        hotkey_items = [
-            ("Cursor Mode:", "cursor_mode", "Ctrl+Shift+Space"),
-            ("Editor Mode:", "editor_mode", "Ctrl+Shift+E"),
-            ("Meeting Mode:", "meeting_mode", "Ctrl+Shift+M"),
-            ("HUD Mode:", "hud_mode", "Ctrl+Shift+H"),
-            ("Toggle Recording:", "toggle_record", "Ctrl+Shift+R"),
-            ("Open Dashboard:", "open_dashboard", "Ctrl+Shift+D"),
-        ]
-        
-        self.hotkey_selectors = {}
-        for row, (label_text, key, default) in enumerate(hotkey_items):
-            label = QLabel(label_text)
-            label.setMinimumWidth(120)
-            hotkey_grid.addWidget(label, row, 0)
-            
-            selector = HotkeySelector(self.config.hotkeys.get(key, default))
-            self.hotkey_selectors[key] = selector
-            hotkey_grid.addWidget(selector, row, 1)
-        
-        # Convenience references for save/reset
-        self.hotkey_cursor = self.hotkey_selectors["cursor_mode"]
-        self.hotkey_editor = self.hotkey_selectors["editor_mode"]
-        self.hotkey_meeting = self.hotkey_selectors["meeting_mode"]
-        self.hotkey_hud = self.hotkey_selectors["hud_mode"]
-        self.hotkey_record = self.hotkey_selectors["toggle_record"]
-        self.hotkey_dashboard = self.hotkey_selectors["open_dashboard"]
-        
-        hotkeys_layout.addLayout(hotkey_grid)
-        
-        # Reset defaults button
-        reset_btn = QPushButton("↩️ Reset to Defaults")
-        reset_btn.clicked.connect(self._reset_hotkeys)
-        hotkeys_layout.addWidget(reset_btn)
-        
-        layout.addWidget(hotkeys_group)
-        
-        # Recording Mode section
-        recording_group = QGroupBox("🎙️ Recording Mode")
-        recording_layout = QVBoxLayout(recording_group)
-        
-        recording_info = QLabel("Choose how hotkeys trigger recording:")
-        recording_info.setStyleSheet("color: gray; font-size: 11px;")
-        recording_layout.addWidget(recording_info)
-        
-        # Radio buttons for mode selection
-        from PyQt6.QtWidgets import QRadioButton, QButtonGroup
-        
-        self.recording_mode_group = QButtonGroup(self)
-        
-        self.toggle_radio = QRadioButton("Toggle — Press once to start, press again to stop")
-        self.toggle_radio.setToolTip("Tap the hotkey to start recording, tap again to stop and transcribe.")
-        self.recording_mode_group.addButton(self.toggle_radio)
-        recording_layout.addWidget(self.toggle_radio)
-        
-        self.ptt_radio = QRadioButton("Push-to-Talk — Hold to record, release to stop")
-        self.ptt_radio.setToolTip("Hold the hotkey while speaking. Release when done to transcribe.")
-        self.recording_mode_group.addButton(self.ptt_radio)
-        recording_layout.addWidget(self.ptt_radio)
-        
-        # Set current state from config
-        if self.config.recording_mode == "push_to_talk":
-            self.ptt_radio.setChecked(True)
-        else:
-            self.toggle_radio.setChecked(True)
-        
-        layout.addWidget(recording_group)
+        # Hotkey info (read-only)
+        hotkey_group = QGroupBox("⌨️ Hotkey")
+        hotkey_layout = QVBoxLayout(hotkey_group)
+        hotkey_label = QLabel("Push-to-Talk: <b>Right Command</b> (hold to record, release to paste)")
+        hotkey_label.setWordWrap(True)
+        hotkey_layout.addWidget(hotkey_label)
+        layout.addWidget(hotkey_group)
         
         # Cloud Mode - Hybrid Cloud Uplink
         cloud_group = QGroupBox("☁️ Cloud Mode (Hybrid Uplink)")
@@ -580,16 +499,6 @@ class DashboardWindow(QMainWindow):
         layout.addStretch()
         return widget
     
-    def _reset_hotkeys(self):
-        """Reset hotkeys to defaults."""
-        self.hotkey_cursor.set_hotkey(DEFAULT_HOTKEYS["cursor_mode"])
-        self.hotkey_editor.set_hotkey(DEFAULT_HOTKEYS["editor_mode"])
-        self.hotkey_meeting.set_hotkey(DEFAULT_HOTKEYS["meeting_mode"])
-        self.hotkey_hud.set_hotkey(DEFAULT_HOTKEYS["hud_mode"])
-        self.hotkey_record.set_hotkey(DEFAULT_HOTKEYS["toggle_record"])
-        self.hotkey_dashboard.set_hotkey(DEFAULT_HOTKEYS["open_dashboard"])
-        self.save_status.setText("Hotkeys reset to defaults. Click Save to apply.")
-        self.save_status.setStyleSheet("color: #6c757d;")
         
     def _create_session_tab(self) -> QWidget:
         """Create the session management tab."""
@@ -668,30 +577,8 @@ class DashboardWindow(QMainWindow):
         self.config.cloud_api_base_url = self.cloud_base_url.text()
         self.config.cloud_api_model = self.cloud_model.text()
         
-        # Hotkeys - get from HotkeySelector widgets
-        self.config.hotkeys = {
-            "cursor_mode": self.hotkey_cursor.get_hotkey(),
-            "editor_mode": self.hotkey_editor.get_hotkey(),
-            "meeting_mode": self.hotkey_meeting.get_hotkey(),
-            "hud_mode": self.hotkey_hud.get_hotkey(),
-            "toggle_record": self.hotkey_record.get_hotkey(),
-            "open_dashboard": self.hotkey_dashboard.get_hotkey(),
-        }
-        
-        # Update hotkey labels in Modes tab for all modes
-        for mode_id in ["cursor", "editor", "meeting", "hud"]:
-            hotkey = self.config.hotkeys.get(f"{mode_id}_mode", "")
-            if mode_id in self.mode_hotkey_labels:
-                self.mode_hotkey_labels[mode_id].setText(f"Hotkey: {hotkey}")
-        
         # Vocabulary
         self.config.vocabulary = [v.strip() for v in self.vocab_edit.toPlainText().split(",") if v.strip()]
-        
-        # Recording mode (toggle vs push-to-talk)
-        if self.ptt_radio.isChecked():
-            self.config.recording_mode = "push_to_talk"
-        else:
-            self.config.recording_mode = "toggle"
         
         # Logging
         self.config.logging_enabled = self.logging_cb.isChecked()
