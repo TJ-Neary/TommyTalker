@@ -41,6 +41,8 @@ dependencies = [
 dev = [
     "pytest>=7.0.0",
     "pytest-qt>=4.2.0",
+    "pytest-cov>=4.0.0",
+    "mutmut>=3.0",
     "black>=23.0.0",
     "ruff>=0.1.0",
     "pyinstaller>=6.0.0",
@@ -57,7 +59,19 @@ include = ["tommy_talker*"]
 line-length = 100
 target-version = ["py312"]
 
+[tool.pytest.ini_options]
+markers = [
+    "tdd: marks tests written following Red-Green-Refactor TDD cycle",
+]
+
+[tool.mutmut]
+paths_to_mutate = "src/tommy_talker/"
+tests_dir = "tests/"
+runner = "python -m pytest -x -q --tb=no"
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W"]
