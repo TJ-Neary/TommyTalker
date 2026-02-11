@@ -14,7 +14,7 @@ BASE_DATA_DIR = Path.home() / "Documents" / "TommyTalker"
 
 # Default configuration values - user-friendly hotkeys
 DEFAULT_HOTKEYS = {
-    "cursor_mode": "Cmd+.",
+    "cursor_mode": "RightCmd",
     "editor_mode": "Ctrl+/",
     "meeting_mode": "Option+M",
     "hud_mode": "Option+H",
@@ -52,7 +52,7 @@ class UserConfig:
     # Recording trigger mode: "toggle" or "push_to_talk"
     # toggle = press once to start, press again to stop
     # push_to_talk = hold to record, release to stop
-    recording_mode: str = "toggle"
+    recording_mode: str = "push_to_talk"
     
     # Auto-clear session on new recording
     auto_clear_session: bool = False
@@ -68,6 +68,12 @@ class UserConfig:
     custom_whisper_model: Optional[str] = None
     custom_llm_model: Optional[str] = None
     
+    # App context detection
+    app_context_enabled: bool = True
+
+    # Audio feedback variation (round-robin sound pools)
+    audio_feedback_variation: bool = True
+
     # Cloud Mode - Hybrid Cloud Uplink
     cloud_mode_enabled: bool = False
     cloud_api_base_url: str = "https://api.openai.com/v1"  # OpenAI-compatible endpoint
@@ -138,11 +144,14 @@ def load_config() -> UserConfig:
             style_guide_path=data.get("style_guide_path"),
             hotkeys=data.get("hotkeys", DEFAULT_HOTKEYS),
             default_mode=data.get("default_mode", "cursor"),
+            recording_mode=data.get("recording_mode", "push_to_talk"),
             auto_clear_session=data.get("auto_clear_session", False),
             huggingface_token_set=data.get("huggingface_token_set", False),
             advanced_mode=data.get("advanced_mode", False),
             custom_whisper_model=data.get("custom_whisper_model"),
             custom_llm_model=data.get("custom_llm_model"),
+            app_context_enabled=data.get("app_context_enabled", True),
+            audio_feedback_variation=data.get("audio_feedback_variation", True),
             cloud_mode_enabled=data.get("cloud_mode_enabled", False),
             cloud_api_base_url=data.get("cloud_api_base_url", "https://api.openai.com/v1"),
             cloud_api_model=data.get("cloud_api_model", "gpt-4o-mini"),

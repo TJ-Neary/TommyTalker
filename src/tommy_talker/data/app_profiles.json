@@ -1,0 +1,683 @@
+{
+  "apps": {
+    "visual studio code": {
+      "name": "Visual Studio Code",
+      "bundle_id": "com.microsoft.VSCode",
+      "category": "Developer Tools",
+      "text_input_format": "code",
+      "short_description": "Code editor"
+    },
+    "xcode": {
+      "name": "Xcode",
+      "bundle_id": "com.apple.dt.Xcode",
+      "category": "Developer Tools",
+      "text_input_format": "code",
+      "short_description": "Apple IDE"
+    },
+    "sublime text": {
+      "name": "Sublime Text",
+      "bundle_id": "com.sublimetext.4",
+      "category": "Developer Tools",
+      "text_input_format": "code",
+      "short_description": "Code editor"
+    },
+    "jetbrains ide": {
+      "name": "JetBrains IDE",
+      "bundle_id": "com.jetbrains.intellij",
+      "category": "Developer Tools",
+      "text_input_format": "code",
+      "short_description": "JetBrains IDE"
+    },
+    "intellij idea": {
+      "name": "IntelliJ IDEA",
+      "bundle_id": "com.jetbrains.intellij",
+      "category": "Developer Tools",
+      "text_input_format": "code",
+      "short_description": "Java IDE"
+    },
+    "pycharm": {
+      "name": "PyCharm",
+      "bundle_id": "com.jetbrains.pycharm",
+      "category": "Developer Tools",
+      "text_input_format": "code",
+      "short_description": "Python IDE"
+    },
+    "webstorm": {
+      "name": "WebStorm",
+      "bundle_id": "com.jetbrains.WebStorm",
+      "category": "Developer Tools",
+      "text_input_format": "code",
+      "short_description": "Web IDE"
+    },
+    "nova": {
+      "name": "Nova",
+      "bundle_id": "com.panic.Nova",
+      "category": "Developer Tools",
+      "text_input_format": "code",
+      "short_description": "Mac-native code editor"
+    },
+    "vim": {
+      "name": "Vim",
+      "bundle_id": "",
+      "category": "Developer Tools",
+      "text_input_format": "code",
+      "short_description": "Terminal editor"
+    },
+    "neovim": {
+      "name": "Neovim",
+      "bundle_id": "",
+      "category": "Developer Tools",
+      "text_input_format": "code",
+      "short_description": "Terminal editor"
+    },
+    "cursor": {
+      "name": "Cursor",
+      "bundle_id": "com.todesktop.230313mzl4w4u92",
+      "category": "Developer Tools",
+      "text_input_format": "code",
+      "short_description": "AI code editor"
+    },
+    "zed": {
+      "name": "Zed",
+      "bundle_id": "dev.zed.Zed",
+      "category": "Developer Tools",
+      "text_input_format": "code",
+      "short_description": "Fast code editor"
+    },
+    "terminal": {
+      "name": "Terminal",
+      "bundle_id": "com.apple.Terminal",
+      "category": "Terminal",
+      "text_input_format": "terminal_command",
+      "short_description": "macOS terminal"
+    },
+    "iterm2": {
+      "name": "iTerm2",
+      "bundle_id": "com.googlecode.iterm2",
+      "category": "Terminal",
+      "text_input_format": "terminal_command",
+      "short_description": "Terminal emulator"
+    },
+    "iterm": {
+      "name": "iTerm",
+      "bundle_id": "com.googlecode.iterm2",
+      "category": "Terminal",
+      "text_input_format": "terminal_command",
+      "short_description": "Terminal emulator"
+    },
+    "warp": {
+      "name": "Warp",
+      "bundle_id": "dev.warp.Warp-Stable",
+      "category": "Terminal",
+      "text_input_format": "terminal_command",
+      "short_description": "Modern terminal"
+    },
+    "alacritty": {
+      "name": "Alacritty",
+      "bundle_id": "org.alacritty",
+      "category": "Terminal",
+      "text_input_format": "terminal_command",
+      "short_description": "GPU-accelerated terminal"
+    },
+    "kitty": {
+      "name": "Kitty",
+      "bundle_id": "net.kovidgoyal.kitty",
+      "category": "Terminal",
+      "text_input_format": "terminal_command",
+      "short_description": "Terminal emulator"
+    },
+    "slack": {
+      "name": "Slack",
+      "bundle_id": "com.tinyspeck.slackmacgap",
+      "category": "Communication",
+      "text_input_format": "chat_message",
+      "short_description": "Team messaging"
+    },
+    "discord": {
+      "name": "Discord",
+      "bundle_id": "com.hnc.Discord",
+      "category": "Communication",
+      "text_input_format": "chat_message",
+      "short_description": "Chat and voice"
+    },
+    "messages": {
+      "name": "Messages",
+      "bundle_id": "com.apple.MobileSMS",
+      "category": "Communication",
+      "text_input_format": "chat_message",
+      "short_description": "Apple Messages"
+    },
+    "telegram": {
+      "name": "Telegram",
+      "bundle_id": "ru.keepcoder.Telegram",
+      "category": "Communication",
+      "text_input_format": "chat_message",
+      "short_description": "Messaging app"
+    },
+    "whatsapp": {
+      "name": "WhatsApp",
+      "bundle_id": "net.whatsapp.WhatsApp",
+      "category": "Communication",
+      "text_input_format": "chat_message",
+      "short_description": "Messaging app"
+    },
+    "signal": {
+      "name": "Signal",
+      "bundle_id": "org.whispersystems.signal-desktop",
+      "category": "Communication",
+      "text_input_format": "chat_message",
+      "short_description": "Encrypted messaging"
+    },
+    "microsoft teams": {
+      "name": "Microsoft Teams",
+      "bundle_id": "com.microsoft.teams2",
+      "category": "Communication",
+      "text_input_format": "chat_message",
+      "short_description": "Team collaboration"
+    },
+    "zoom": {
+      "name": "Zoom",
+      "bundle_id": "us.zoom.xos",
+      "category": "Communication",
+      "text_input_format": "chat_message",
+      "short_description": "Video conferencing"
+    },
+    "mail": {
+      "name": "Mail",
+      "bundle_id": "com.apple.mail",
+      "category": "Email",
+      "text_input_format": "email",
+      "short_description": "Apple Mail"
+    },
+    "gmail": {
+      "name": "Gmail",
+      "bundle_id": "",
+      "category": "Email",
+      "text_input_format": "email",
+      "short_description": "Google email (web)"
+    },
+    "outlook": {
+      "name": "Outlook",
+      "bundle_id": "com.microsoft.Outlook",
+      "category": "Email",
+      "text_input_format": "email",
+      "short_description": "Microsoft email"
+    },
+    "spark": {
+      "name": "Spark",
+      "bundle_id": "com.readdle.smartemail-Mac",
+      "category": "Email",
+      "text_input_format": "email",
+      "short_description": "Email client"
+    },
+    "airmail": {
+      "name": "Airmail",
+      "bundle_id": "it.bloop.airmail2",
+      "category": "Email",
+      "text_input_format": "email",
+      "short_description": "Email client"
+    },
+    "obsidian": {
+      "name": "Obsidian",
+      "bundle_id": "md.obsidian",
+      "category": "Notes & Markdown",
+      "text_input_format": "markdown",
+      "short_description": "Markdown knowledge base"
+    },
+    "notion": {
+      "name": "Notion",
+      "bundle_id": "notion.id",
+      "category": "Notes & Markdown",
+      "text_input_format": "markdown",
+      "short_description": "All-in-one workspace"
+    },
+    "bear": {
+      "name": "Bear",
+      "bundle_id": "net.shinyfrog.bear",
+      "category": "Notes & Markdown",
+      "text_input_format": "markdown",
+      "short_description": "Markdown notes"
+    },
+    "craft": {
+      "name": "Craft",
+      "bundle_id": "com.lukilabs.lukiapp",
+      "category": "Notes & Markdown",
+      "text_input_format": "markdown",
+      "short_description": "Document editor"
+    },
+    "ia writer": {
+      "name": "iA Writer",
+      "bundle_id": "pro.writer.mac",
+      "category": "Notes & Markdown",
+      "text_input_format": "markdown",
+      "short_description": "Focused writing"
+    },
+    "ulysses": {
+      "name": "Ulysses",
+      "bundle_id": "com.ulyssesapp.mac",
+      "category": "Notes & Markdown",
+      "text_input_format": "markdown",
+      "short_description": "Writing app"
+    },
+    "typora": {
+      "name": "Typora",
+      "bundle_id": "abnerworks.Typora",
+      "category": "Notes & Markdown",
+      "text_input_format": "markdown",
+      "short_description": "Markdown editor"
+    },
+    "notes": {
+      "name": "Notes",
+      "bundle_id": "com.apple.Notes",
+      "category": "Notes & Markdown",
+      "text_input_format": "plaintext",
+      "short_description": "Apple Notes"
+    },
+    "pages": {
+      "name": "Pages",
+      "bundle_id": "com.apple.iWork.Pages",
+      "category": "Documents",
+      "text_input_format": "document_text",
+      "short_description": "Apple word processor"
+    },
+    "microsoft word": {
+      "name": "Microsoft Word",
+      "bundle_id": "com.microsoft.Word",
+      "category": "Documents",
+      "text_input_format": "document_text",
+      "short_description": "Word processor"
+    },
+    "google docs": {
+      "name": "Google Docs",
+      "bundle_id": "",
+      "category": "Documents",
+      "text_input_format": "document_text",
+      "short_description": "Online documents (web)"
+    },
+    "textedit": {
+      "name": "TextEdit",
+      "bundle_id": "com.apple.TextEdit",
+      "category": "Plain Text",
+      "text_input_format": "plaintext",
+      "short_description": "Basic text editor"
+    },
+    "bbedit": {
+      "name": "BBEdit",
+      "bundle_id": "com.barebones.bbedit",
+      "category": "Plain Text",
+      "text_input_format": "plaintext",
+      "short_description": "Text editor"
+    },
+    "coteditor": {
+      "name": "CotEditor",
+      "bundle_id": "com.coteditor.CotEditor",
+      "category": "Plain Text",
+      "text_input_format": "plaintext",
+      "short_description": "Text editor"
+    },
+    "safari": {
+      "name": "Safari",
+      "bundle_id": "com.apple.Safari",
+      "category": "Web Browser",
+      "text_input_format": "search_query",
+      "short_description": "Apple web browser"
+    },
+    "google chrome": {
+      "name": "Google Chrome",
+      "bundle_id": "com.google.Chrome",
+      "category": "Web Browser",
+      "text_input_format": "search_query",
+      "short_description": "Web browser"
+    },
+    "firefox": {
+      "name": "Firefox",
+      "bundle_id": "org.mozilla.firefox",
+      "category": "Web Browser",
+      "text_input_format": "search_query",
+      "short_description": "Web browser"
+    },
+    "arc": {
+      "name": "Arc",
+      "bundle_id": "company.thebrowser.Browser",
+      "category": "Web Browser",
+      "text_input_format": "search_query",
+      "short_description": "Modern web browser"
+    },
+    "brave browser": {
+      "name": "Brave Browser",
+      "bundle_id": "com.brave.Browser",
+      "category": "Web Browser",
+      "text_input_format": "search_query",
+      "short_description": "Privacy browser"
+    },
+    "microsoft edge": {
+      "name": "Microsoft Edge",
+      "bundle_id": "com.microsoft.edgemac",
+      "category": "Web Browser",
+      "text_input_format": "search_query",
+      "short_description": "Web browser"
+    },
+    "spotlight": {
+      "name": "Spotlight",
+      "bundle_id": "com.apple.Spotlight",
+      "category": "Search & Launchers",
+      "text_input_format": "search_query",
+      "short_description": "System search"
+    },
+    "alfred": {
+      "name": "Alfred",
+      "bundle_id": "com.runningwithcrayons.Alfred",
+      "category": "Search & Launchers",
+      "text_input_format": "search_query",
+      "short_description": "Productivity launcher"
+    },
+    "raycast": {
+      "name": "Raycast",
+      "bundle_id": "com.raycast.macos",
+      "category": "Search & Launchers",
+      "text_input_format": "search_query",
+      "short_description": "Launcher & productivity"
+    },
+    "launchbar": {
+      "name": "LaunchBar",
+      "bundle_id": "at.obdev.LaunchBar",
+      "category": "Search & Launchers",
+      "text_input_format": "search_query",
+      "short_description": "App launcher"
+    },
+    "numbers": {
+      "name": "Numbers",
+      "bundle_id": "com.apple.iWork.Numbers",
+      "category": "Spreadsheets",
+      "text_input_format": "spreadsheet_formula",
+      "short_description": "Apple spreadsheet"
+    },
+    "microsoft excel": {
+      "name": "Microsoft Excel",
+      "bundle_id": "com.microsoft.Excel",
+      "category": "Spreadsheets",
+      "text_input_format": "spreadsheet_formula",
+      "short_description": "Spreadsheet"
+    },
+    "google sheets": {
+      "name": "Google Sheets",
+      "bundle_id": "",
+      "category": "Spreadsheets",
+      "text_input_format": "spreadsheet_formula",
+      "short_description": "Online spreadsheet (web)"
+    },
+    "figma": {
+      "name": "Figma",
+      "bundle_id": "com.figma.Desktop",
+      "category": "Design",
+      "text_input_format": "plaintext",
+      "short_description": "Design tool"
+    },
+    "sketch": {
+      "name": "Sketch",
+      "bundle_id": "com.bohemiancoding.sketch3",
+      "category": "Design",
+      "text_input_format": "plaintext",
+      "short_description": "Vector design"
+    },
+    "affinity designer": {
+      "name": "Affinity Designer",
+      "bundle_id": "com.seriflabs.affinitydesigner2",
+      "category": "Design",
+      "text_input_format": "plaintext",
+      "short_description": "Vector graphics"
+    },
+    "keynote": {
+      "name": "Keynote",
+      "bundle_id": "com.apple.iWork.Keynote",
+      "category": "Presentations",
+      "text_input_format": "plaintext",
+      "short_description": "Apple presentations"
+    },
+    "microsoft powerpoint": {
+      "name": "Microsoft PowerPoint",
+      "bundle_id": "com.microsoft.Powerpoint",
+      "category": "Presentations",
+      "text_input_format": "plaintext",
+      "short_description": "Presentation software"
+    },
+    "finder": {
+      "name": "Finder",
+      "bundle_id": "com.apple.finder",
+      "category": "System",
+      "text_input_format": "plaintext",
+      "short_description": "File manager"
+    },
+    "system preferences": {
+      "name": "System Preferences",
+      "bundle_id": "com.apple.systempreferences",
+      "category": "System",
+      "text_input_format": "plaintext",
+      "short_description": "System settings"
+    },
+    "system settings": {
+      "name": "System Settings",
+      "bundle_id": "com.apple.systempreferences",
+      "category": "System",
+      "text_input_format": "plaintext",
+      "short_description": "System settings"
+    },
+    "activity monitor": {
+      "name": "Activity Monitor",
+      "bundle_id": "com.apple.ActivityMonitor",
+      "category": "System",
+      "text_input_format": "plaintext",
+      "short_description": "Process monitor"
+    },
+    "console": {
+      "name": "Console",
+      "bundle_id": "com.apple.Console",
+      "category": "System",
+      "text_input_format": "plaintext",
+      "short_description": "Log viewer"
+    },
+    "github desktop": {
+      "name": "GitHub Desktop",
+      "bundle_id": "com.github.GitHubClient",
+      "category": "Developer Tools",
+      "text_input_format": "plaintext",
+      "short_description": "Git GUI"
+    },
+    "tower": {
+      "name": "Tower",
+      "bundle_id": "com.fournova.Tower3",
+      "category": "Developer Tools",
+      "text_input_format": "plaintext",
+      "short_description": "Git client"
+    },
+    "postman": {
+      "name": "Postman",
+      "bundle_id": "com.postmanlabs.mac",
+      "category": "Developer Tools",
+      "text_input_format": "plaintext",
+      "short_description": "API client"
+    },
+    "insomnia": {
+      "name": "Insomnia",
+      "bundle_id": "com.insomnia.app",
+      "category": "Developer Tools",
+      "text_input_format": "plaintext",
+      "short_description": "API client"
+    },
+    "docker desktop": {
+      "name": "Docker Desktop",
+      "bundle_id": "com.docker.docker",
+      "category": "Developer Tools",
+      "text_input_format": "terminal_command",
+      "short_description": "Container platform"
+    },
+    "linear": {
+      "name": "Linear",
+      "bundle_id": "com.linear",
+      "category": "Project Management",
+      "text_input_format": "markdown",
+      "short_description": "Issue tracker"
+    },
+    "jira": {
+      "name": "Jira",
+      "bundle_id": "",
+      "category": "Project Management",
+      "text_input_format": "plaintext",
+      "short_description": "Issue tracker (web)"
+    },
+    "todoist": {
+      "name": "Todoist",
+      "bundle_id": "com.todoist.mac.Todoist",
+      "category": "Productivity",
+      "text_input_format": "plaintext",
+      "short_description": "Task manager"
+    },
+    "things": {
+      "name": "Things",
+      "bundle_id": "com.culturedcode.ThingsMac",
+      "category": "Productivity",
+      "text_input_format": "plaintext",
+      "short_description": "Task manager"
+    },
+    "reminders": {
+      "name": "Reminders",
+      "bundle_id": "com.apple.reminders",
+      "category": "Productivity",
+      "text_input_format": "plaintext",
+      "short_description": "Apple Reminders"
+    },
+    "calendar": {
+      "name": "Calendar",
+      "bundle_id": "com.apple.iCal",
+      "category": "Productivity",
+      "text_input_format": "plaintext",
+      "short_description": "Apple Calendar"
+    },
+    "1password": {
+      "name": "1Password",
+      "bundle_id": "com.1password.1password",
+      "category": "Security",
+      "text_input_format": "plaintext",
+      "short_description": "Password manager"
+    },
+    "twitter": {
+      "name": "Twitter",
+      "bundle_id": "com.twitter.twitter-mac",
+      "category": "Social Media",
+      "text_input_format": "chat_message",
+      "short_description": "Social media"
+    },
+    "x": {
+      "name": "X",
+      "bundle_id": "com.twitter.twitter-mac",
+      "category": "Social Media",
+      "text_input_format": "chat_message",
+      "short_description": "Social media"
+    },
+    "mastodon": {
+      "name": "Mastodon",
+      "bundle_id": "",
+      "category": "Social Media",
+      "text_input_format": "chat_message",
+      "short_description": "Decentralized social"
+    },
+    "reddit": {
+      "name": "Reddit",
+      "bundle_id": "",
+      "category": "Social Media",
+      "text_input_format": "chat_message",
+      "short_description": "Social forum"
+    },
+    "chatgpt": {
+      "name": "ChatGPT",
+      "bundle_id": "com.openai.chat",
+      "category": "AI",
+      "text_input_format": "chat_message",
+      "short_description": "AI assistant"
+    },
+    "claude": {
+      "name": "Claude",
+      "bundle_id": "com.anthropic.claudefordesktop",
+      "category": "AI",
+      "text_input_format": "chat_message",
+      "short_description": "AI assistant"
+    },
+    "copilot": {
+      "name": "Copilot",
+      "bundle_id": "",
+      "category": "AI",
+      "text_input_format": "chat_message",
+      "short_description": "Microsoft AI"
+    },
+    "grammarly": {
+      "name": "Grammarly",
+      "bundle_id": "com.grammarly.ProjectLlama",
+      "category": "Writing",
+      "text_input_format": "document_text",
+      "short_description": "Writing assistant"
+    },
+    "scrivener": {
+      "name": "Scrivener",
+      "bundle_id": "com.literatureandlatte.scrivener3",
+      "category": "Writing",
+      "text_input_format": "document_text",
+      "short_description": "Long-form writing"
+    },
+    "day one": {
+      "name": "Day One",
+      "bundle_id": "com.bloombuilt.dayone-mac",
+      "category": "Writing",
+      "text_input_format": "markdown",
+      "short_description": "Journal app"
+    },
+    "table plus": {
+      "name": "TablePlus",
+      "bundle_id": "com.tinyapp.TablePlus",
+      "category": "Developer Tools",
+      "text_input_format": "code",
+      "short_description": "Database GUI"
+    },
+    "datagrip": {
+      "name": "DataGrip",
+      "bundle_id": "com.jetbrains.datagrip",
+      "category": "Developer Tools",
+      "text_input_format": "code",
+      "short_description": "Database IDE"
+    },
+    "dbeaver": {
+      "name": "DBeaver",
+      "bundle_id": "org.jkiss.dbeaver.core.product",
+      "category": "Developer Tools",
+      "text_input_format": "code",
+      "short_description": "Database tool"
+    },
+    "preview": {
+      "name": "Preview",
+      "bundle_id": "com.apple.Preview",
+      "category": "Media",
+      "text_input_format": "plaintext",
+      "short_description": "Image/PDF viewer"
+    },
+    "photos": {
+      "name": "Photos",
+      "bundle_id": "com.apple.Photos",
+      "category": "Media",
+      "text_input_format": "plaintext",
+      "short_description": "Photo library"
+    },
+    "music": {
+      "name": "Music",
+      "bundle_id": "com.apple.Music",
+      "category": "Media",
+      "text_input_format": "search_query",
+      "short_description": "Apple Music"
+    },
+    "spotify": {
+      "name": "Spotify",
+      "bundle_id": "com.spotify.client",
+      "category": "Media",
+      "text_input_format": "search_query",
+      "short_description": "Music streaming"
+    }
+  }
+}

@@ -36,11 +36,16 @@ class ModeResult:
 
 class BaseModeController:
     """Base class for mode controllers."""
-    
+
     def __init__(self, config: UserConfig, hardware: HardwareProfile):
         self.config = config
         self.hardware = hardware
         self._is_active = False
+        self._app_context = None
+
+    def set_app_context(self, app_context):
+        """Set the app context for this recording session."""
+        self._app_context = app_context
         
     def start(self):
         """Start the mode."""
@@ -180,9 +185,12 @@ class EditorModeController(BaseModeController):
             
         print(f"[EditorMode] Transcribed: {transcript.text[:50]}...")
         
-        # Rewrite with LLM
-        rewrite_result = self.llm.rewrite_professional(transcript.text)
-        
+        # Rewrite with LLM — use app-context-aware prompt if available
+        if self._app_context and self._app_context.profile:
+            rewrite_result = self.llm.rewrite_for_context(transcript.text, self._app_context)
+        else:
+            rewrite_result = self.llm.rewrite_professional(transcript.text)
+
         if not rewrite_result:
             # Fall back to original if rewrite fails
             final_text = transcript.text
@@ -485,20 +493,24 @@ class ModeManager:
         if self.on_text_output:
             self.on_text_output(text)
             
-    def start_mode(self, mode: OperatingMode) -> bool:
+    def start_mode(self, mode: OperatingMode, app_context=None) -> bool:
         """Start a mode (stops any currently active mode first)."""
         # Stop current mode if active
         if self._current_controller and self._current_controller.is_active:
             self.stop_current_mode()
-            
+
         try:
             self._current_mode = mode
             self._current_controller = self._create_controller(mode)
+
+            if app_context:
+                self._current_controller.set_app_context(app_context)
+
             self._current_controller.start()
-            
+
             print(f"[ModeManager] Started mode: {mode.value}")
             return True
-            
+
         except Exception as e:
             print(f"[ModeManager] Error starting mode: {e}")
             self._current_mode = None

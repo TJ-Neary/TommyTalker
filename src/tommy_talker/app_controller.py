@@ -3,6 +3,7 @@ TommyTalker Application Controller
 Main application orchestration connecting GUI, engine, and utils.
 """
 
+import re
 import time
 from typing import Optional
 from PyQt6.QtCore import QObject, pyqtSignal, QThread
@@ -10,9 +11,10 @@ from PyQt6.QtCore import QObject, pyqtSignal, QThread
 from tommy_talker.engine.modes import ModeManager, OperatingMode, ModeResult
 from tommy_talker.utils.config import UserConfig, save_config
 from tommy_talker.utils.hardware_detect import HardwareProfile
-from tommy_talker.utils.hotkeys import HotkeyManager
+from tommy_talker.utils.hotkeys import HotkeyManager, is_modifier_only_hotkey
 from tommy_talker.utils.typing import type_at_cursor, paste_text
 from tommy_talker.utils.audio_feedback import get_audio_feedback
+from tommy_talker.utils.app_context import AppContext, TextInputFormat, get_app_context
 
 # Minimum time between hotkey triggers (debounce)
 HOTKEY_DEBOUNCE_SECONDS = 0.5
@@ -44,6 +46,9 @@ class AppController(QObject):
         
         # Debounce tracking for hotkeys
         self._last_hotkey_time: float = 0
+
+        # App context captured at recording start
+        self._app_context: Optional[AppContext] = None
         
         # Initialize mode manager
         self.mode_manager = ModeManager(config, hardware)
@@ -61,13 +66,17 @@ class AppController(QObject):
         """Register global hotkeys from config."""
         hotkeys = self.config.hotkeys
         is_push_to_talk = self.config.recording_mode == "push_to_talk"
-        
+
         # Cursor mode hotkey
         if "cursor_mode" in hotkeys:
-            if is_push_to_talk:
+            cursor_hotkey = hotkeys["cursor_mode"]
+            # Modifier-only hotkeys (e.g., RightCmd) always use push-to-talk
+            use_push_to_talk = is_push_to_talk or is_modifier_only_hotkey(cursor_hotkey)
+
+            if use_push_to_talk:
                 # Push-to-talk: start on key-down, stop on key-up
                 self.hotkey_manager.register(
-                    hotkeys["cursor_mode"],
+                    cursor_hotkey,
                     self._on_cursor_hotkey_down,
                     "Cursor Mode",
                     callback_up=self._on_hotkey_up
@@ -75,7 +84,7 @@ class AppController(QObject):
             else:
                 # Toggle: just key-down toggles state
                 self.hotkey_manager.register(
-                    hotkeys["cursor_mode"],
+                    cursor_hotkey,
                     self._on_cursor_hotkey_toggle,
                     "Cursor Mode"
                 )
@@ -126,36 +135,54 @@ class AppController(QObject):
         
     def start_recording(self) -> bool:
         """Start recording in the current mode."""
-        success = self.mode_manager.start_mode(self._current_mode)
-        
+        # Capture app context BEFORE recording starts (target app is frontmost now)
+        if self.config.app_context_enabled:
+            self._app_context = get_app_context()
+        else:
+            self._app_context = None
+
+        success = self.mode_manager.start_mode(self._current_mode, app_context=self._app_context)
+
         if success:
             # Play audio feedback
             get_audio_feedback().play_start()
-            
+
             self.recording_started.emit()
             self.recording_changed.emit(True)
-            self.status_message.emit(f"Recording ({self._current_mode.value})...")
-            
+
+            ctx_hint = ""
+            if self._app_context and self._app_context.profile:
+                ctx_hint = f" [{self._app_context.app_name}]"
+            self.status_message.emit(f"Recording ({self._current_mode.value}){ctx_hint}...")
+
         return success
         
     def stop_recording(self) -> Optional[ModeResult]:
         """Stop recording and process result."""
         result = self.mode_manager.stop_current_mode()
-        
-        # Play audio feedback
-        get_audio_feedback().play_stop()
-        
+
         self.recording_changed.emit(False)
-        
+
+        audio = get_audio_feedback()
+
         if result:
             self.recording_stopped.emit(result)
-            
-            if result.success:
+
+            if result.success and result.text:
+                # Got text — play stop sound
+                audio.play_stop()
                 self.status_message.emit("Recording processed")
+            elif result.success and not result.text:
+                # Success but empty transcription — play no-result sound
+                audio.play_no_result()
+                self.status_message.emit("No speech detected")
             else:
+                # Error
+                audio.play_error()
                 self.status_message.emit(f"Error: {result.error}")
-                get_audio_feedback().play_error()
-                
+        else:
+            audio.play_stop()
+
         return result
         
     def toggle_recording(self):
@@ -171,14 +198,39 @@ class AppController(QObject):
         else:
             self.start_recording()
             
+    def _apply_output_formatting(self, text: str) -> str:
+        """Apply lightweight output formatting based on app context."""
+        if not self._app_context:
+            return text
+
+        fmt = self._app_context.text_input_format
+
+        if fmt == TextInputFormat.SEARCH_QUERY:
+            # Strip trailing punctuation, collapse to single line
+            text = text.strip().rstrip(".,!?;:")
+            text = " ".join(text.split())
+        elif fmt == TextInputFormat.TERMINAL_COMMAND:
+            # Strip filler words, collapse whitespace
+            filler = r"\b(um|uh|so|like|please|can you|could you)\b"
+            text = re.sub(filler, "", text, flags=re.IGNORECASE)
+            text = " ".join(text.split()).strip()
+        elif fmt == TextInputFormat.URL:
+            # Strip spaces
+            text = text.replace(" ", "")
+
+        return text
+
     def _on_text_output(self, text: str):
         """Handle text output from modes (type/paste)."""
         if not text:
             return
-            
+
+        # Apply lightweight output formatting based on target app
+        text = self._apply_output_formatting(text)
+
         # Use paste for better reliability
         success = paste_text(text)
-        
+
         if success:
             self.status_message.emit("Text pasted")
         else:

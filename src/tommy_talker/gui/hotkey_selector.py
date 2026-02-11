@@ -10,7 +10,21 @@ from PyQt6.QtCore import pyqtSignal, Qt
 
 
 # Valid modifiers (first dropdown)
-FIRST_MODIFIERS = ["Ctrl", "Cmd", "Option"]
+FIRST_MODIFIERS = ["Right Command", "Ctrl", "Cmd", "Option"]
+
+# Standalone modifier-only hotkeys (no second/third key needed)
+STANDALONE_MODIFIERS = {"Right Command", "Right Option", "Right Shift", "Right Ctrl"}
+
+# Mapping from standalone display names to hotkey strings
+STANDALONE_TO_HOTKEY = {
+    "Right Command": "RightCmd",
+    "Right Option": "RightOption",
+    "Right Shift": "RightShift",
+    "Right Ctrl": "RightCtrl",
+}
+
+# Reverse mapping for loading
+HOTKEY_TO_STANDALONE = {v: k for k, v in STANDALONE_TO_HOTKEY.items()}
 
 # Letters that are SAFE to use (excludes Z, C, V, X, Q, W, A, S which conflict with system shortcuts)
 SAFE_LETTERS = ["D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "R", "T", "U", "Y"]
@@ -92,16 +106,26 @@ class HotkeySelector(QWidget):
         """Handle first dropdown change."""
         if not text:
             return
-            
+
+        # Standalone modifier-only hotkeys disable other dropdowns
+        if text in STANDALONE_MODIFIERS:
+            self.combo2.setEnabled(False)
+            self.combo2.clear()
+            self.combo3.setEnabled(False)
+            self.combo3.clear()
+            self.plus2.setVisible(False)
+            self._emit_hotkey()
+            return
+
         # Update second dropdown options
         self._update_combo2_options(text)
         self.combo2.setEnabled(True)
-        
+
         # Reset third dropdown
         self.combo3.clear()
         self.combo3.setEnabled(False)
         self.plus2.setVisible(True)
-        
+
         self._emit_hotkey()
         
     def _update_combo2_options(self, first_choice: str):
@@ -160,36 +184,50 @@ class HotkeySelector(QWidget):
             
     def get_hotkey(self) -> str:
         """Get the current hotkey string."""
-        parts = [self.combo1.currentText()]
-        
+        first = self.combo1.currentText()
+
+        # Standalone modifier-only hotkey
+        if first in STANDALONE_TO_HOTKEY:
+            return STANDALONE_TO_HOTKEY[first]
+
+        parts = [first]
+
         second = self.combo2.currentText()
         if second:
             parts.append(second)
-            
+
         third = self.combo3.currentText()
         if third and third != "Not Used":
             parts.append(third)
-            
+
         if len(parts) < 2:
             return ""
-            
+
         return "+".join(parts)
         
     def _load_hotkey(self, hotkey: str):
         """Load and display an existing hotkey."""
         if not hotkey:
             return
-            
+
+        # Check for standalone modifier-only hotkey (e.g., "RightCmd")
+        if hotkey in HOTKEY_TO_STANDALONE:
+            display_name = HOTKEY_TO_STANDALONE[hotkey]
+            idx = self.combo1.findText(display_name)
+            if idx >= 0:
+                self.combo1.setCurrentIndex(idx)
+            return
+
         parts = hotkey.split("+")
         if len(parts) < 2:
             return
-            
+
         # Set first dropdown
         first = parts[0].strip()
         idx = self.combo1.findText(first)
         if idx >= 0:
             self.combo1.setCurrentIndex(idx)
-            
+
         # Set second dropdown
         if len(parts) >= 2:
             second = parts[1].strip()
@@ -198,7 +236,7 @@ class HotkeySelector(QWidget):
             idx = self.combo2.findText(second)
             if idx >= 0:
                 self.combo2.setCurrentIndex(idx)
-                
+
         # Set third dropdown
         if len(parts) >= 3:
             third = parts[2].strip()

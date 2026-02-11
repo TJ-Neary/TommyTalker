@@ -53,6 +53,8 @@ htmlcov/
 
 # Local data (created at runtime)
 data/
+# But include bundled package data
+!src/tommy_talker/data/
 
 # User data stored in ~/Documents/TommyTalker/
 # This is intentionally NOT in the project directory

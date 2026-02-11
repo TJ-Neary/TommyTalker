@@ -1,6 +1,6 @@
 """
 TommyTalker Audio Feedback
-Simple sound effects for recording start/stop feedback.
+Sound effects for recording start/stop feedback with variation.
 """
 
 import subprocess
@@ -11,39 +11,69 @@ class AudioFeedback:
     """
     Play audio feedback sounds using macOS system sounds.
     Uses afplay for reliable non-blocking playback.
+
+    When variation is enabled, rotates through sound pools using round-robin
+    to prevent repetition fatigue.
     """
-    
+
     # System sound paths on macOS
     SYSTEM_SOUNDS = Path("/System/Library/Sounds")
-    
-    # Sound mappings
-    START_SOUND = "Tink.aiff"      # Short, crisp sound for start
-    STOP_SOUND = "Pop.aiff"        # Different sound for stop
-    ERROR_SOUND = "Basso.aiff"     # Error/warning sound
-    
-    def __init__(self, enabled: bool = True):
+
+    # Sound pools — round-robin rotation for variety
+    START_POOL = ["Tink.aiff", "Morse.aiff", "Ping.aiff", "Glass.aiff"]
+    STOP_POOL = ["Pop.aiff", "Bottle.aiff", "Purr.aiff", "Blow.aiff"]
+    NO_RESULT_POOL = ["Frog.aiff", "Submarine.aiff"]
+    ERROR_POOL = ["Basso.aiff", "Funk.aiff", "Sosumi.aiff"]
+
+    def __init__(self, enabled: bool = True, vary_sounds: bool = True):
         self.enabled = enabled
-        self._check_sounds()
-        
-    def _check_sounds(self):
-        """Check if system sounds exist."""
-        self._start_path = self.SYSTEM_SOUNDS / self.START_SOUND
-        self._stop_path = self.SYSTEM_SOUNDS / self.STOP_SOUND
-        self._error_path = self.SYSTEM_SOUNDS / self.ERROR_SOUND
-        
-        if not self._start_path.exists():
-            print(f"[AudioFeedback] Warning: Start sound not found at {self._start_path}")
-            
-    def _play_async(self, sound_path: Path):
+        self.vary_sounds = vary_sounds
+
+        # Round-robin indices
+        self._start_idx = 0
+        self._stop_idx = 0
+        self._no_result_idx = 0
+        self._error_idx = 0
+
+        # Validate and filter pools to existing sounds
+        self._start_sounds = self._validate_pool(self.START_POOL)
+        self._stop_sounds = self._validate_pool(self.STOP_POOL)
+        self._no_result_sounds = self._validate_pool(self.NO_RESULT_POOL)
+        self._error_sounds = self._validate_pool(self.ERROR_POOL)
+
+    def _validate_pool(self, pool: list[str]) -> list[Path]:
+        """Filter a sound pool to only sounds that exist on the system."""
+        valid = []
+        for name in pool:
+            path = self.SYSTEM_SOUNDS / name
+            if path.exists():
+                valid.append(path)
+        if not valid:
+            print(f"[AudioFeedback] Warning: no sounds found from pool {pool}")
+        return valid
+
+    def _next_sound(self, pool: list[Path], idx_attr: str) -> Path | None:
+        """Get the next sound from a pool using round-robin."""
+        if not pool:
+            return None
+
+        if not self.vary_sounds:
+            return pool[0]
+
+        idx = getattr(self, idx_attr)
+        sound = pool[idx % len(pool)]
+        setattr(self, idx_attr, idx + 1)
+        return sound
+
+    def _play_async(self, sound_path: Path | None):
         """Play a sound asynchronously (non-blocking)."""
-        if not self.enabled:
+        if not self.enabled or sound_path is None:
             return
-            
+
         if not sound_path.exists():
             return
-            
+
         try:
-            # Use afplay with low volume so it's subtle
             subprocess.Popen(
                 ["afplay", "-v", "0.5", str(sound_path)],
                 stdout=subprocess.DEVNULL,
@@ -51,18 +81,22 @@ class AudioFeedback:
             )
         except Exception as e:
             print(f"[AudioFeedback] Error playing sound: {e}")
-            
+
     def play_start(self):
         """Play recording start sound."""
-        self._play_async(self._start_path)
-        
+        self._play_async(self._next_sound(self._start_sounds, "_start_idx"))
+
     def play_stop(self):
         """Play recording stop sound."""
-        self._play_async(self._stop_path)
-        
+        self._play_async(self._next_sound(self._stop_sounds, "_stop_idx"))
+
+    def play_no_result(self):
+        """Play distinct sound for empty transcription (no speech detected)."""
+        self._play_async(self._next_sound(self._no_result_sounds, "_no_result_idx"))
+
     def play_error(self):
         """Play error sound."""
-        self._play_async(self._error_path)
+        self._play_async(self._next_sound(self._error_sounds, "_error_idx"))
 
 
 # Global instance
