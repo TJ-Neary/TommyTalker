@@ -4,8 +4,8 @@ System tray integration with mode selection and quick controls.
 """
 
 from PyQt6.QtWidgets import QSystemTrayIcon, QMenu, QApplication
-from PyQt6.QtGui import QIcon, QAction, QPixmap, QPainter, QColor, QPen
-from PyQt6.QtCore import pyqtSignal, QObject, Qt
+from PyQt6.QtGui import QIcon, QAction, QPixmap, QPainter, QColor, QPen, QFont
+from PyQt6.QtCore import pyqtSignal, QObject, Qt, QRect
 
 from tommy_talker.utils.config import UserConfig
 from tommy_talker.utils.hardware_detect import HardwareProfile
@@ -31,46 +31,39 @@ class MenuBarApp(QObject):
         self._setup_icon(recording=False)
         self._setup_menu()
         
-    def _create_microphone_pixmap(self, color: QColor) -> QPixmap:
-        """Create a microphone icon pixmap with the specified color."""
+    def _create_tt_pixmap(self, text_color: QColor) -> QPixmap:
+        """Create the TT icon: white filled square with TT letters."""
         pixmap = QPixmap(22, 22)
         pixmap.fill(Qt.GlobalColor.transparent)
-        
+
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        
-        # Set color
-        pen = QPen(color)
-        pen.setWidth(2)
-        painter.setPen(pen)
-        painter.setBrush(color)
-        
-        # Microphone body (rounded rectangle/capsule)
-        painter.drawRoundedRect(7, 2, 8, 10, 3, 3)
-        
-        # Microphone stand (arc + stem)
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawArc(4, 6, 14, 12, 0, -180 * 16)
-        
-        # Stem
-        painter.drawLine(11, 14, 11, 17)
-        
-        # Base
-        painter.drawLine(6, 17, 16, 17)
-        
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+
+        # White filled square with slight rounding
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(255, 255, 255))
+        painter.drawRoundedRect(1, 1, 20, 20, 3, 3)
+
+        # TT letters
+        font = QFont("Helvetica Neue", 11, QFont.Weight.Bold)
+        painter.setFont(font)
+        painter.setPen(text_color)
+        painter.drawText(QRect(1, 1, 20, 20), Qt.AlignmentFlag.AlignCenter, "TT")
+
         painter.end()
         return pixmap
         
     def _setup_icon(self, recording: bool = False):
-        """Setup the tray icon - red when recording, black otherwise."""
+        """Setup the tray icon - red TT when recording, dark TT otherwise."""
         if recording:
-            color = QColor(220, 53, 69)  # Red (#dc3545)
+            text_color = QColor(220, 53, 69)  # Red (#dc3545)
             tooltip = "TommyTalker - RECORDING"
         else:
-            color = QColor(0, 0, 0)  # Black
+            text_color = QColor(30, 30, 30)  # Near-black
             tooltip = "TommyTalker - Click for menu"
-            
-        pixmap = self._create_microphone_pixmap(color)
+
+        pixmap = self._create_tt_pixmap(text_color)
         icon = QIcon(pixmap)
         self.tray_icon.setIcon(icon)
         self.tray_icon.setToolTip(tooltip)

@@ -99,7 +99,9 @@
 | engine/rag_store.py | ChromaDB meeting storage | **Engine only** |
 | engine/modes.py | 4 operating mode controllers | **Engine only** |
 | gui/hud.py | Screen-share invisible overlay | **Engine only** |
-| utils/history.py | Transcription history | **Orphaned** |
+| utils/path_guard.py | Filesystem boundary enforcement | **Active** |
+| utils/code_validator.py | AST-based code validation | **Active** |
+| utils/prompt_injection.py | Prompt injection detection | **Active** |
 
 ### Data Flow (Push-to-Talk)
 
@@ -183,13 +185,25 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 - [x] Kept all engine code intact for future re-enablement
 - [x] Static "Push-to-Talk: Right Command" label in settings
 
-### Phase 8: Portfolio Release (2026-02-11)
+### Phase 8: Portfolio Release ✓ (2026-02-11)
 - [x] Hero banner image (assets/images/hero-banner.png)
 - [x] README.md rewrite with app-aware formatting showcase
 - [x] MIT LICENSE
 - [x] CONTRIBUTING.md
 - [x] All documentation updated
 - [ ] Push to GitHub public repository
+
+### Phase 9: Production Readiness (2026-02-12)
+- [x] CI/CD pipeline (GitHub Actions: lint, test, security scan)
+- [x] Custom TT menu bar icon (white square, dark TT; red TT when recording)
+- [x] App icon generation script (scripts/generate_icon.py → .icns)
+- [x] LaunchAgent for start-on-login (com.tommytalker.app.plist)
+- [x] Build script install/uninstall support (build.sh --install/--uninstall)
+- [x] Cleanup: removed orphaned utils/history.py
+- [x] Cleanup: removed 5 legacy Gemini-era docs (gemini.md, task_plan.md, progress.md, findings.md, ISSUES_BACKLOG.md)
+- [x] Synced 3 security utilities from _HQ (path_guard, code_validator, prompt_injection)
+- [ ] Code signing (deferred — requires Apple Developer account)
+- [ ] Notarization (deferred — requires Apple Developer account)
 
 ---
 
@@ -200,6 +214,7 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 | Task | Status | Notes |
 |------|--------|-------|
 | Push to GitHub | Ready | All docs updated, portfolio release |
+| Build and test .app | Ready | Run `./build.sh --install` to package and install |
 | Code signing | Deferred | For App Store / public distribution |
 | Notarization | Deferred | Requires Apple Developer account |
 
@@ -207,6 +222,13 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 
 | Task | Status | Date |
 |------|--------|------|
+| CI/CD GitHub Actions workflow | Done | 2026-02-12 |
+| Custom TT menu bar icon | Done | 2026-02-12 |
+| .app packaging with install/uninstall | Done | 2026-02-12 |
+| Launch on login (LaunchAgent) | Done | 2026-02-12 |
+| Remove orphaned history.py | Done | 2026-02-12 |
+| Remove legacy Gemini-era docs | Done | 2026-02-12 |
+| Sync HQ security utilities | Done | 2026-02-12 |
 | Push-to-talk (Right Cmd) | Done | 2026-02-11 |
 | App context detection (97 profiles) | Done | 2026-02-11 |
 | Audio feedback system | Done | 2026-02-11 |
@@ -272,6 +294,18 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 - **Alternatives considered**: Custom sound files (SW/ bundle), PyQt6 multimedia, no audio feedback
 - **Date**: 2026-02-11
 
+### TD-008: Custom TT Menu Bar Icon
+- **Decision**: White filled square with "TT" letters, red TT when recording, dark TT when idle
+- **Rationale**: Distinctive brand identity in menu bar. White square provides consistent background across light/dark mode. Red color signals recording state clearly.
+- **Alternatives considered**: Microphone icon (generic), waveform icon, template image (loses color)
+- **Date**: 2026-02-12
+
+### TD-009: LaunchAgent for Start on Login
+- **Decision**: Use macOS LaunchAgent plist (`~/Library/LaunchAgents/com.tommytalker.app.plist`) with RunAtLoad
+- **Rationale**: Standard macOS mechanism for user-level login items. No elevated privileges needed. Easy to install/uninstall via build script.
+- **Alternatives considered**: Login Items API (requires entitlements), SMAppService (Swift-only), manual Dock/System Preferences
+- **Date**: 2026-02-12
+
 ---
 
 ## Quality Standards
@@ -297,7 +331,10 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 | Config override (Cmd+. → RightCmd) | Added config migration in load_config() | 2026-02-11 |
 | Ctrl+C not exiting Qt | Added signal.signal(SIGINT) handler | 2026-02-11 |
 | pyobjc Python 3.13 issue | Replaced Carbon with Quartz Event Tap | 2026-02-11 |
+| Orphaned utils/history.py | Deleted — never imported, broken get_data_path dependency | 2026-02-12 |
+| Legacy Gemini-era docs | Deleted 5 files — git history preserved, DevPlan is authoritative | 2026-02-12 |
+| Private HQ assets not syncing | Reclassified path_guard, code_validator, prompt_injection as public | 2026-02-12 |
 
 ---
 
-*Last updated: 2026-02-11*
+*Last updated: 2026-02-12*

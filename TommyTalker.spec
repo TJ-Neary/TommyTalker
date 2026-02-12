@@ -49,6 +49,10 @@ hiddenimports = [
     'tommy_talker.utils.secure_credentials',
     'tommy_talker.utils.audio_feedback',
     'tommy_talker.utils.logger',
+    'tommy_talker.utils.app_context',
+    'tommy_talker.utils.path_guard',
+    'tommy_talker.utils.code_validator',
+    'tommy_talker.utils.prompt_injection',
     'tommy_talker.app_controller',
 
     # PyQt6
@@ -145,7 +149,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='TommyTalker.app',
-    icon=None,  # Add icon path here: 'resources/icon.icns'
+    icon='resources/TommyTalker.icns' if Path('resources/TommyTalker.icns').exists() else None,
     bundle_identifier='com.tommytalker.app',
     info_plist={
         'CFBundleName': 'TommyTalker',
