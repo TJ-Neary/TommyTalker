@@ -28,18 +28,6 @@
 | AG Startup Workflow | [./.agent/workflows/gogogo.md](./.agent/workflows/gogogo.md) | AG session startup sequence |
 | AG Wrapup Workflow | [./.agent/workflows/wrapup.md](./.agent/workflows/wrapup.md) | AG session close sequence |
 
-### Legacy Documentation
-
-These files were created during the initial Gemini-based build phase and are kept for historical reference. The Development Plan (`_project/DevPlan.md`) is now the authoritative planning document.
-
-| Document | Path | Purpose |
-|----------|------|---------|
-| Blueprint | [./gemini.md](./gemini.md) | Original data schemas and behavioral rules |
-| Task Plan | [./task_plan.md](./task_plan.md) | Original phase-based development breakdown |
-| Progress Log | [./progress.md](./progress.md) | Original session log and error tracking |
-| Research | [./findings.md](./findings.md) | Technical research and open questions |
-| Issues Backlog | [./ISSUES_BACKLOG.md](./ISSUES_BACKLOG.md) | Original issues tracker |
-
 ### Configuration & Build
 
 | Document | Path | Purpose |
@@ -184,7 +172,9 @@ DATA FLOW (Push-to-Talk):
 | `typing.py` | Text input automation | `type_at_cursor()`, `paste_text()` | **Active** |
 | `logger.py` | Logging configuration | `setup_logger()`, `get_logger()` | **Active** |
 | `secure_credentials.py` | Credential storage | `store_credential()`, `get_credential()` | **Active** |
-| `history.py` | Transcription history | `TranscriptionHistory` | **Orphaned** |
+| `path_guard.py` | Filesystem boundary enforcement | `PathGuard` | **Active** |
+| `code_validator.py` | AST-based code validation | `validate_code()` | **Active** |
+| `prompt_injection.py` | Prompt injection detection | `scan_text()`, `scan_file()` | **Active** |
 
 ### Data Files (`src/tommy_talker/data/`)
 
