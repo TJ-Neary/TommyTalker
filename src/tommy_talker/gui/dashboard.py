@@ -6,8 +6,8 @@ Settings panel with vocabulary, logging, model selection, and session recording.
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QComboBox, QRadioButton,
-    QCheckBox, QTextEdit, QButtonGroup,
-    QGroupBox, QFormLayout, QScrollArea
+    QCheckBox, QTextEdit, QLineEdit, QButtonGroup,
+    QGroupBox, QFormLayout, QScrollArea, QFrame
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont
@@ -159,11 +159,16 @@ class DashboardWindow(QMainWindow):
 
         layout.addWidget(session_group)
 
-        # Vocabulary
-        vocab_group = QGroupBox("Custom Vocabulary")
+        # Vocabulary & Replacements
+        vocab_group = QGroupBox("Vocabulary & Replacements")
         vocab_layout = QVBoxLayout(vocab_group)
 
+        # Vocabulary subsection
+        vocab_header = QLabel("<b>Vocabulary</b>")
+        vocab_layout.addWidget(vocab_header)
+
         vocab_info = QLabel("Words injected into Whisper's initial_prompt for better recognition:")
+        vocab_info.setStyleSheet("color: gray; font-size: 11px;")
         vocab_info.setWordWrap(True)
         vocab_layout.addWidget(vocab_info)
 
@@ -171,6 +176,39 @@ class DashboardWindow(QMainWindow):
         self.vocab_edit.setPlainText(", ".join(self.config.vocabulary))
         self.vocab_edit.setMaximumHeight(60)
         vocab_layout.addWidget(self.vocab_edit)
+
+        # Word Replacements subsection
+        replace_header = QLabel("<b>Word Replacements</b>")
+        replace_header.setContentsMargins(0, 8, 0, 0)
+        vocab_layout.addWidget(replace_header)
+
+        replace_info = QLabel("Automatically fix words that speech-to-text gets wrong:")
+        replace_info.setStyleSheet("color: gray; font-size: 11px;")
+        replace_info.setWordWrap(True)
+        vocab_layout.addWidget(replace_info)
+
+        # Input row
+        input_row = QHBoxLayout()
+        self.replace_input = QLineEdit()
+        self.replace_input.setPlaceholderText("Misheard word")
+        self.replace_with = QLineEdit()
+        self.replace_with.setPlaceholderText("Replace with...")
+        add_btn = QPushButton("Add")
+        add_btn.clicked.connect(self._add_replacement)
+        self.replace_input.returnPressed.connect(self._add_replacement)
+        self.replace_with.returnPressed.connect(self._add_replacement)
+        input_row.addWidget(self.replace_input, 2)
+        input_row.addWidget(self.replace_with, 2)
+        input_row.addWidget(add_btn)
+        vocab_layout.addLayout(input_row)
+
+        # Replacement list
+        self.replacements_list = QVBoxLayout()
+        self.replacements_list.setSpacing(4)
+        self._replacement_rows: list[tuple[str, str, QWidget]] = []
+        for original, replacement in self.config.word_replacements.items():
+            self._add_replacement_row(original, replacement)
+        vocab_layout.addLayout(self.replacements_list)
 
         layout.addWidget(vocab_group)
 
@@ -217,6 +255,57 @@ class DashboardWindow(QMainWindow):
         layout.addStretch()
         scroll.setWidget(container)
 
+    def _add_replacement(self):
+        """Add a word replacement from the input fields."""
+        original = self.replace_input.text().strip()
+        replacement = self.replace_with.text().strip()
+        if not original or not replacement:
+            return
+
+        # Don't add duplicates
+        for o, r, w in self._replacement_rows:
+            if o.lower() == original.lower():
+                return
+
+        self._add_replacement_row(original, replacement)
+        self.replace_input.clear()
+        self.replace_with.clear()
+        self.replace_input.setFocus()
+
+    def _add_replacement_row(self, original: str, replacement: str):
+        """Add a visual row for a word replacement."""
+        row = QFrame()
+        row.setStyleSheet("QFrame { background: palette(base); border-radius: 4px; padding: 4px; }")
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(8, 4, 8, 4)
+
+        orig_label = QLabel(original)
+        orig_label.setMinimumWidth(120)
+        arrow = QLabel("\u2192")
+        arrow.setStyleSheet("color: #007bff; font-weight: bold;")
+        repl_label = QLabel(replacement)
+        repl_label.setMinimumWidth(120)
+
+        delete_btn = QPushButton("\u2715")
+        delete_btn.setFixedSize(24, 24)
+        delete_btn.setStyleSheet("QPushButton { border: none; color: #999; } QPushButton:hover { color: #dc3545; }")
+        delete_btn.clicked.connect(lambda: self._remove_replacement(original, row))
+
+        row_layout.addWidget(orig_label)
+        row_layout.addWidget(arrow)
+        row_layout.addWidget(repl_label)
+        row_layout.addStretch()
+        row_layout.addWidget(delete_btn)
+
+        self._replacement_rows.append((original, replacement, row))
+        self.replacements_list.addWidget(row)
+
+    def _remove_replacement(self, original: str, row_widget: QWidget):
+        """Remove a word replacement row."""
+        self._replacement_rows = [(o, r, w) for o, r, w in self._replacement_rows if w is not row_widget]
+        self.replacements_list.removeWidget(row_widget)
+        row_widget.deleteLater()
+
     def _populate_audio_devices(self):
         """Populate the audio device dropdown with available input devices."""
         self.device_combo.clear()
@@ -246,6 +335,9 @@ class DashboardWindow(QMainWindow):
         """Save all settings to config."""
         # Vocabulary
         self.config.vocabulary = [v.strip() for v in self.vocab_edit.toPlainText().split(",") if v.strip()]
+
+        # Word replacements
+        self.config.word_replacements = {o: r for o, r, w in self._replacement_rows}
 
         # Logging
         self.config.logging_enabled = self.logging_cb.isChecked()

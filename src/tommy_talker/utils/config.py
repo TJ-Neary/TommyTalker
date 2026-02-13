@@ -55,6 +55,9 @@ class UserConfig:
     # Audio feedback variation (round-robin sound pools)
     audio_feedback_variation: bool = True
 
+    # Word replacements (misheard → correct)
+    word_replacements: dict[str, str] = field(default_factory=dict)
+
     # Custom Whisper model override
     custom_whisper_model: Optional[str] = None
 
@@ -104,6 +107,7 @@ def load_config() -> UserConfig:
             recording_mode=data.get("recording_mode", "push_to_talk"),
             app_context_enabled=data.get("app_context_enabled", True),
             audio_feedback_variation=data.get("audio_feedback_variation", True),
+            word_replacements=data.get("word_replacements", {}),
             custom_whisper_model=data.get("custom_whisper_model"),
             session_audio_source=data.get("session_audio_source", "mic"),
             session_system_device=data.get("session_system_device"),

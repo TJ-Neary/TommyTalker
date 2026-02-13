@@ -313,12 +313,28 @@ class AppController(QObject):
 
         return text
 
+    def _apply_word_replacements(self, text: str) -> str:
+        """Apply user-defined word replacements to transcribed text."""
+        if not self.config.word_replacements:
+            return text
+
+        for original, replacement in self.config.word_replacements.items():
+            text = re.sub(
+                r'\b' + re.escape(original) + r'\b',
+                replacement,
+                text,
+                flags=re.IGNORECASE,
+            )
+
+        return text
+
     def _on_text_output(self, text: str):
         """Handle text output from modes (type/paste)."""
         if not text:
             return
 
         text = self._apply_output_formatting(text)
+        text = self._apply_word_replacements(text)
         success = paste_text(text)
 
         if success:
