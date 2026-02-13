@@ -3,8 +3,11 @@ TommyTalker Audio Feedback
 Sound effects for recording start/stop feedback with variation.
 """
 
+import logging
 import subprocess
 from pathlib import Path
+
+log = logging.getLogger("TommyTalker")
 
 
 class AudioFeedback:
@@ -49,7 +52,7 @@ class AudioFeedback:
             if path.exists():
                 valid.append(path)
         if not valid:
-            print(f"[AudioFeedback] Warning: no sounds found from pool {pool}")
+            log.warning("No sounds found from pool %s", pool)
         return valid
 
     def _next_sound(self, pool: list[Path], idx_attr: str) -> Path | None:
@@ -80,7 +83,7 @@ class AudioFeedback:
                 stderr=subprocess.DEVNULL
             )
         except Exception as e:
-            print(f"[AudioFeedback] Error playing sound: {e}")
+            log.error("Error playing sound: %s", e)
 
     def play_start(self):
         """Play recording start sound."""

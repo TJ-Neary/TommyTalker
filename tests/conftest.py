@@ -20,7 +20,7 @@ if str(SRC_PATH) not in sys.path:
 @pytest.fixture
 def tmp_project_dir(tmp_path):
     """Create a temporary project directory with standard structure."""
-    dirs = ["data", "logs", "recordings", "chroma"]
+    dirs = ["data", "logs", "recordings"]
     for d in dirs:
         (tmp_path / d).mkdir()
     return tmp_path
@@ -72,6 +72,4 @@ def mock_hardware():
         ram_gb=48,
         tier=3,
         whisper_model="large-v3-turbo",
-        llm_model="qwen2.5:32b",
-        diarization_enabled=True
     )

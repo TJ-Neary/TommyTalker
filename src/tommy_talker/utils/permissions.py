@@ -3,8 +3,11 @@ TommyTalker Permissions
 macOS permission checking for Microphone and Accessibility.
 """
 
+import logging
 import subprocess
 from dataclasses import dataclass
+
+log = logging.getLogger("TommyTalker")
 
 # Check for pyobjc availability
 HAS_PYOBJC = False
@@ -43,7 +46,7 @@ def check_microphone_permission() -> bool:
             if auth_status == 3:
                 return True
         except Exception as e:
-            print(f"[Permissions] AVFoundation check failed: {e}")
+            log.error("AVFoundation check failed: %s", e)
     
     # Method 2: Try sounddevice - if we can query input devices, likely have permission
     try:
@@ -63,7 +66,7 @@ def check_microphone_permission() -> bool:
                 # Device busy is still success for permission check
                 return True
     except Exception as e:
-        print(f"[Permissions] sounddevice check failed: {e}")
+        log.error("sounddevice check failed: %s", e)
     
     # Method 3: Check if tccutil shows permission (fallback)
     try:
@@ -79,7 +82,7 @@ def check_microphone_permission() -> bool:
         pass
     
     # Default: assume granted to avoid blocking when detection fails
-    print("[Permissions] Could not verify microphone permission, assuming granted")
+    log.warning("Could not verify microphone permission, assuming granted")
     return True
 
 
@@ -107,10 +110,10 @@ def check_accessibility_permission() -> bool:
         return result.stdout.strip().lower() == "true"
         
     except subprocess.TimeoutExpired:
-        print("[Permissions] Accessibility check timed out")
+        log.warning("Accessibility check timed out")
         return False
     except Exception as e:
-        print(f"[Permissions] Error checking accessibility: {e}")
+        log.error("Error checking accessibility: %s", e)
         # If we can't check, assume granted
         return True
 
@@ -125,7 +128,7 @@ def check_permissions() -> PermissionStatus:
     mic = check_microphone_permission()
     acc = check_accessibility_permission()
     
-    print(f"[Permissions] Microphone: {'✓' if mic else '✗'}, Accessibility: {'✓' if acc else '✗'}")
+    log.debug("Microphone: %s, Accessibility: %s", "granted" if mic else "denied", "granted" if acc else "denied")
     
     return PermissionStatus(microphone=mic, accessibility=acc)
 
@@ -139,11 +142,11 @@ def request_microphone_permission():
         try:
             AVCaptureDevice.requestAccessForMediaType_completionHandler_(
                 AVMediaTypeAudio,
-                lambda granted: print(f"[Permissions] Microphone access: {'granted' if granted else 'denied'}")
+                lambda granted: log.debug("Microphone access: %s", "granted" if granted else "denied")
             )
             return
         except Exception as e:
-            print(f"[Permissions] Error requesting microphone: {e}")
+            log.error("Error requesting microphone: %s", e)
     
     # Fallback: try to open an audio stream to trigger the permission dialog
     try:
@@ -169,14 +172,14 @@ def open_system_preferences(pane: str):
     
     url = urls.get(pane)
     if not url:
-        print(f"[Permissions] Unknown pane: {pane}")
+        log.warning("Unknown pane: %s", pane)
         return
         
     try:
         subprocess.run(["open", url], check=True)
-        print(f"[Permissions] Opened System Settings: {pane}")
+        log.debug("Opened System Settings: %s", pane)
     except Exception as e:
-        print(f"[Permissions] Error opening System Settings: {e}")
+        log.error("Error opening System Settings: %s", e)
         
         # Fallback to opening Security & Privacy directly
         try:

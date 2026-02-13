@@ -4,11 +4,14 @@ Speech-to-text using mlx_whisper (Apple Silicon optimized).
 Supports vocabulary injection via initial_prompt.
 """
 
+import logging
 from pathlib import Path
 from typing import Optional
 from dataclasses import dataclass
 
 import numpy as np
+
+log = logging.getLogger("TommyTalker")
 
 # mlx_whisper import - may fail if not installed
 try:
@@ -16,13 +19,12 @@ try:
     HAS_MLX_WHISPER = True
 except ImportError:
     HAS_MLX_WHISPER = False
-    print("[WARNING] mlx_whisper not installed - transcription disabled")
+    log.warning("mlx_whisper not installed - transcription disabled")
 
 
 # Default vocabulary for Whisper initial_prompt
 DEFAULT_VOCABULARY = [
-    "TommyTalker", "RAG", "LLM", "Diarization",
-    "PyObjC", "PyQt6", "Ollama", "vector store"
+    "TommyTalker",
 ]
 
 
@@ -70,10 +72,10 @@ class Transcriber:
         self._model = None
         
         if not HAS_MLX_WHISPER:
-            print("[Transcriber] mlx_whisper not available")
+            log.warning("Transcriber: mlx_whisper not available")
             return
             
-        print(f"[Transcriber] Initialized with model: {self.model_name}")
+        log.info("Transcriber initialized with model: %s", self.model_name)
         
     def _get_initial_prompt(self) -> str:
         """Build the initial_prompt from vocabulary list."""
@@ -93,7 +95,7 @@ class Transcriber:
             return None
             
         if not audio_path.exists():
-            print(f"[Transcriber] File not found: {audio_path}")
+            log.error("Transcriber file not found: %s", audio_path)
             return None
             
         try:
@@ -111,7 +113,7 @@ class Transcriber:
             )
             
         except Exception as e:
-            print(f"[Transcriber] Error transcribing file: {e}")
+            log.error("Transcriber error transcribing file: %s", e)
             return None
             
     def transcribe_audio(self, audio_data: np.ndarray, sample_rate: int = 16000) -> Optional[TranscriptionResult]:
@@ -144,7 +146,7 @@ class Transcriber:
             )
             
         except Exception as e:
-            print(f"[Transcriber] Error transcribing audio: {e}")
+            log.error("Transcriber error transcribing audio: %s", e)
             return None
             
     def update_vocabulary(self, words: list[str]):
@@ -162,4 +164,4 @@ class Transcriber:
         """
         self.model_name = model_name
         self._model = None  # Reset cached model
-        print(f"[Transcriber] Model changed to: {model_name}")
+        log.info("Transcriber model changed to: %s", model_name)

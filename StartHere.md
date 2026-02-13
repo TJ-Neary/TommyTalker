@@ -334,7 +334,7 @@ Files that exist at runtime but are gitignored:
 
 | Type | Path/Pattern | Purpose |
 |------|--------------|---------|
-| Virtual env | `.venv/`, `venv/` | Python dependencies |
+| Virtual env | `.venv/` | Python dependencies |
 | Python cache | `__pycache__/`, `*.pyc` | Compiled bytecode |
 | Build artifacts | `build/`, `dist/` | PyInstaller output |
 | Legacy bundle | `SW/` | Pre-compiled frameworks, audio, icons, templates |

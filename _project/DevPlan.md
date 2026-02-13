@@ -73,9 +73,6 @@
 │                     │ (mlx-whisper)│     │ format+paste │       │
 │                     └──────────────┘     └──────────────┘       │
 │                                                                  │
-│  ┌─ Engine (built, UI hidden) ─────────────────────────────────┐│
-│  │  LLM Client (Ollama) │ Diarizer (pyannote) │ RAG (ChromaDB)││
-│  └─────────────────────────────────────────────────────────────┘│
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -90,15 +87,11 @@
 | utils/typing.py | Cursor text insertion (pyautogui + clipboard) | **Active** |
 | engine/audio_capture.py | Dual-stream audio recording | **Active** |
 | engine/transcriber.py | mlx-whisper STT | **Active** |
-| gui/menu_bar.py | System tray interface (cursor mode only) | **Active** |
-| gui/dashboard.py | Settings window (simplified) | **Active** |
+| engine/modes.py | Cursor mode controller + ModeManager | **Active** |
+| gui/menu_bar.py | System tray with TT icon (red when recording) | **Active** |
+| gui/dashboard.py | Settings window (models + preferences) | **Active** |
 | gui/setup_guide.py | Permission wizard | **Active** |
 | gui/onboarding.py | First-run wizard | **Active** |
-| engine/llm_client.py | Ollama/OpenAI-compat LLM | **Engine only** |
-| engine/diarizer.py | pyannote speaker diarization | **Engine only** |
-| engine/rag_store.py | ChromaDB meeting storage | **Engine only** |
-| engine/modes.py | 4 operating mode controllers | **Engine only** |
-| gui/hud.py | Screen-share invisible overlay | **Engine only** |
 | utils/path_guard.py | Filesystem boundary enforcement | **Active** |
 | utils/code_validator.py | AST-based code validation | **Active** |
 | utils/prompt_injection.py | Prompt injection detection | **Active** |
@@ -205,6 +198,21 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 - [ ] Code signing (deferred — requires Apple Developer account)
 - [ ] Notarization (deferred — requires Apple Developer account)
 
+### Phase 10: Feature Stripping ✓ (2026-02-12)
+- [x] Deleted engine modules: llm_client.py, diarizer.py, rag_store.py, session_db.py
+- [x] Deleted GUI modules: hud.py, hotkey_selector.py
+- [x] Deleted test file: test_app_aware_llm.py (15 LLM tests)
+- [x] Simplified modes.py to cursor-only (removed 3 mode controllers)
+- [x] Removed Carbon hotkey code — Quartz Event Tap only
+- [x] Simplified hardware_detect.py (removed LLM/diarization recommendations)
+- [x] Simplified config.py (removed cloud mode, HuggingFace, RAG, LLM fields)
+- [x] Cleaned dashboard.py (removed Ollama UI, session hygiene, cloud mode)
+- [x] Cleaned onboarding.py (removed LLM download, hotkey config pages)
+- [x] Removed ollama, pyannote.audio, chromadb from dependencies
+- [x] Retina 2x menu bar icon rendering
+- [x] All 61 tests passing, zero startup warnings
+- [x] Updated CLAUDE.md, DevPlan.md, TommyTalker.spec
+
 ---
 
 ## Task Tracker
@@ -222,6 +230,7 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 
 | Task | Status | Date |
 |------|--------|------|
+| Feature stripping (LLM, diarizer, RAG, HUD) | Done | 2026-02-12 |
 | CI/CD GitHub Actions workflow | Done | 2026-02-12 |
 | Custom TT menu bar icon | Done | 2026-02-12 |
 | .app packaging with install/uninstall | Done | 2026-02-12 |
@@ -242,11 +251,10 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 
 | Task | Trigger | Notes |
 |------|---------|-------|
-| Re-enable Editor mode | User demand | Engine code intact, needs UI wiring |
-| Re-enable Meeting mode | User demand | Diarization + RAG engine intact |
-| Re-enable HUD mode | User demand | NSWindowSharingTypeNone overlay intact |
+| Editor mode (LLM rewrite) | User demand | Would need to rebuild llm_client from git history |
+| Meeting mode (diarization) | User demand | Would need to rebuild diarizer + rag_store |
+| HUD mode (screen-share invisible) | User demand | Would need to rebuild hud.py |
 | Windows port | Not planned | macOS-only design |
-| Always-listening mode | Not planned | Privacy concerns, push-to-talk preferred |
 
 ---
 
@@ -264,12 +272,6 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 - **Alternatives considered**: Manual model selection, GPU VRAM-based tiers
 - **Date**: 2026-01
 
-### TD-003: NSWindowSharingTypeNone for HUD
-- **Decision**: Use pyobjc to set NSWindowSharingTypeNone on HUD overlay
-- **Rationale**: Makes overlay invisible to screen sharing (Zoom, Teams) for interview coaching
-- **Alternatives considered**: Separate window process, overlay-only app
-- **Date**: 2026-01
-
 ### TD-004: Quartz Event Tap over Carbon
 - **Decision**: Use Quartz Event Tap for hotkey handling instead of Carbon
 - **Rationale**: Carbon is deprecated and removed in Python 3.14. Quartz Event Tap supports modifier-only keys (Right Command) which Carbon cannot detect as standalone hotkeys.
@@ -282,11 +284,11 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 - **Alternatives considered**: Hardcoded app list, per-app plugins, no context detection
 - **Date**: 2026-02-11
 
-### TD-006: Simplify UI to Push-to-Talk Only
-- **Decision**: Hide Editor, Meeting, and HUD modes from UI while keeping engine code intact
-- **Rationale**: Only Cursor mode with push-to-talk is actively used. Other modes add UI clutter. Engine code preserved for future re-enablement without rebuilding.
-- **Alternatives considered**: Remove engine code entirely, keep all modes visible
-- **Date**: 2026-02-11
+### TD-006: Strip Unused Features
+- **Decision**: Fully remove Editor, Meeting, and HUD modes including engine code, dependencies, and tests
+- **Rationale**: Only Cursor mode with push-to-talk is actively used. Removing dead code reduces attack surface, dependency count, startup warnings, and maintenance burden. Git history preserves everything for potential future rebuild.
+- **Alternatives considered**: Keep engine code hidden but intact (previous approach), keep all modes visible
+- **Date**: 2026-02-12 (updated from 2026-02-11 hide-only approach)
 
 ### TD-007: Audio Feedback via macOS System Sounds
 - **Decision**: Use `/System/Library/Sounds/Blow.aiff` for both start and stop feedback, played via `afplay` subprocess
@@ -310,7 +312,7 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 
 ## Quality Standards
 
-- **Testing**: pytest with 76 tests, coverage reporting, mutation testing (mutmut)
+- **Testing**: pytest with 61 tests, coverage reporting, mutation testing (mutmut)
 - **Formatting**: black (100 char line length)
 - **Linting**: ruff (E, F, I, N, W rules)
 - **Type checking**: mypy
@@ -334,6 +336,9 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 | Orphaned utils/history.py | Deleted — never imported, broken get_data_path dependency | 2026-02-12 |
 | Legacy Gemini-era docs | Deleted 5 files — git history preserved, DevPlan is authoritative | 2026-02-12 |
 | Private HQ assets not syncing | Reclassified path_guard, code_validator, prompt_injection as public | 2026-02-12 |
+| Unused engine features | Fully removed LLM, diarizer, RAG, HUD, hotkey_selector + 6 deps | 2026-02-12 |
+| Carbon hotkey warning | Removed Carbon entirely, Quartz-only hotkey system | 2026-02-12 |
+| Startup warnings (chromadb, pyobjc, etc.) | All eliminated by removing unused dependencies | 2026-02-12 |
 
 ---
 

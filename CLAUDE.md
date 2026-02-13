@@ -23,21 +23,16 @@ This is a **PUBLIC repository**. Content restrictions apply.
 
 ## Project Overview
 
-TommyTalker is a privacy-first voice-to-text app for macOS. It provides push-to-talk dictation via Right Command key, with app-aware text formatting powered by 97 app profiles. Speech recognition runs locally via mlx-whisper on Apple Silicon. The engine also includes LLM rewriting (Ollama), speaker diarization (pyannote.audio), and RAG storage (ChromaDB) — these are built but hidden from the UI, reserved for future modes.
+TommyTalker is a privacy-first voice-to-text app for macOS. It provides push-to-talk dictation via Right Command key, with app-aware text formatting powered by 97 app profiles. Speech recognition runs locally via mlx-whisper on Apple Silicon.
 
-**Status:** Active — Push-to-talk operational, 76 tests passing, UI simplified to cursor mode only.
-
-## Current Focus
-
-- **Active:** Push-to-talk (Right Command hold-to-record), app context detection, menu bar + dashboard
-- **Engine complete but UI hidden:** Editor mode (LLM rewrite), Meeting mode (diarization+RAG), HUD mode (screen-share invisible overlay)
+**Status:** Active — Push-to-talk operational, 61 tests passing, cursor mode only.
 
 ## Development Commands
 
 ### Environment Setup
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e .
 pip install -r requirements-dev.txt
 ```
@@ -60,7 +55,9 @@ mutmut run  # Mutation testing
 
 ### Building
 ```bash
-./build.sh  # Creates macOS .app bundle via PyInstaller
+./build.sh              # Creates macOS .app bundle via PyInstaller
+./build.sh --install    # Build + install to /Applications + launch on login
+./build.sh --uninstall  # Remove from /Applications + disable launch on login
 ```
 
 ## Architecture
@@ -71,19 +68,13 @@ TommyTalker/
 │   ├── __init__.py             # Package exports
 │   ├── main.py                 # Entry point + permission gatekeeper
 │   ├── app_controller.py       # Central orchestrator (hotkeys, recording, text output)
-│   ├── engine/                 # Core AI processing
+│   ├── engine/                 # Core processing
 │   │   ├── audio_capture.py    # Dual-stream audio pipeline
 │   │   ├── transcriber.py      # mlx-whisper STT
-│   │   ├── llm_client.py       # Ollama/OpenAI LLM client
-│   │   ├── diarizer.py         # pyannote speaker diarization
-│   │   ├── rag_store.py        # ChromaDB meeting storage
-│   │   ├── modes.py            # Operating mode controllers
-│   │   └── session_db.py       # SQLite session metadata
+│   │   └── modes.py            # Cursor mode controller + ModeManager
 │   ├── gui/                    # PyQt6 interface
-│   │   ├── menu_bar.py         # System tray app (cursor mode only)
-│   │   ├── dashboard.py        # Settings window (simplified)
-│   │   ├── hud.py              # Screen-share invisible overlay (not wired)
-│   │   ├── hotkey_selector.py  # Hotkey config widget (not wired)
+│   │   ├── menu_bar.py         # System tray app with TT icon
+│   │   ├── dashboard.py        # Settings window
 │   │   ├── setup_guide.py      # Permission wizard
 │   │   └── onboarding.py       # First-run wizard
 │   ├── utils/                  # Infrastructure
@@ -95,13 +86,18 @@ TommyTalker/
 │   │   ├── logger.py           # Structured logging
 │   │   ├── permissions.py      # macOS permission checks
 │   │   ├── typing.py           # Cursor text insertion (pyautogui + clipboard)
-│   │   ├── secure_credentials.py # Keychain integration
-│   │   └── history.py          # Transcription history (orphaned)
+│   │   ├── secure_credentials.py # Credential storage (.env)
+│   │   ├── path_guard.py       # Filesystem boundary enforcement
+│   │   ├── code_validator.py   # AST-based code validation
+│   │   └── prompt_injection.py # Prompt injection detection
 │   └── data/                   # Static data files
 │       └── app_profiles.json   # 97 app profiles for context detection
-├── tests/                      # 76 tests across 5 files
+├── tests/                      # 61 tests across 4 files
 ├── scripts/
-│   └── security_scan.sh        # 9-phase pre-commit security scanner (v4)
+│   ├── security_scan.sh        # 9-phase pre-commit security scanner (v4)
+│   └── generate_icon.py        # App icon generator (.icns)
+├── resources/
+│   └── com.tommytalker.app.plist  # LaunchAgent for start on login
 ├── _project/
 │   └── DevPlan.md              # Development plan
 ├── pyproject.toml              # Package configuration
@@ -129,9 +125,9 @@ Paste at cursor (or type character-by-character)
 - `app_controller.py` applies format-specific transformations before output
 
 ### Hotkey System
-- Uses Quartz Event Tap (not Carbon) for Python 3.14+ compatibility
+- Uses Quartz Event Tap for Python 3.13+ compatibility
 - Supports modifier-only keys (Right Command) via flagsChanged events
-- Falls back to standard key combos for non-modifier hotkeys
+- Standard key combos (Option+R, Option+D) via keyDown/keyUp events
 
 ## Import Convention
 
@@ -144,10 +140,9 @@ from tommy_talker.gui.dashboard import DashboardWindow
 
 ## Security
 
-- API keys stored in macOS Keychain via `secure_credentials.py`
+- Credentials stored in `.env` file via `secure_credentials.py`
 - No hardcoded credentials
 - `.env` file is gitignored
-- See `.env.example` for required environment variables
 - 9-phase security scanner runs pre-commit
 
 ## Related HQ Resources

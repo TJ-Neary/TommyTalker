@@ -4,8 +4,11 @@ Type text at cursor position using pyautogui.
 Also handles clipboard paste for longer text.
 """
 
+import logging
 import time
 from typing import Optional
+
+log = logging.getLogger("TommyTalker")
 
 # pyautogui for typing at cursor
 try:
@@ -17,7 +20,7 @@ try:
     pyautogui.PAUSE = 0.01     # Small pause between actions
 except ImportError:
     HAS_PYAUTOGUI = False
-    print("[WARNING] pyautogui not installed - typing disabled")
+    log.warning("pyautogui not installed - typing disabled")
 
 # For clipboard operations
 try:
@@ -45,7 +48,7 @@ class TypingController:
     
     def __init__(self):
         if not HAS_PYAUTOGUI:
-            print("[TypingController] pyautogui not available")
+            log.warning("pyautogui not available")
             
     def type_text(self, text: str, use_clipboard: Optional[bool] = None) -> bool:
         """
@@ -62,7 +65,7 @@ class TypingController:
             return True
             
         if not HAS_PYAUTOGUI:
-            print(f"[TypingController] Would type: {text[:50]}...")
+            log.debug("Would type: %s...", text[:50])
             return False
             
         # Decide whether to use clipboard
@@ -76,7 +79,7 @@ class TypingController:
                 return self._type_directly(text)
                 
         except Exception as e:
-            print(f"[TypingController] Error typing: {e}")
+            log.error("Error typing: %s", e)
             return False
             
     def _type_directly(self, text: str) -> bool:
@@ -87,7 +90,7 @@ class TypingController:
             pyautogui.write(text, interval=self.TYPING_INTERVAL)
             return True
         except Exception as e:
-            print(f"[TypingController] Direct typing failed: {e}")
+            log.error("Direct typing failed: %s", e)
             # Fallback to clipboard
             return self._paste_from_clipboard(text)
             
@@ -111,7 +114,7 @@ class TypingController:
             return True
             
         except Exception as e:
-            print(f"[TypingController] Clipboard paste failed: {e}")
+            log.error("Clipboard paste failed: %s", e)
             return False
             
     def press_key(self, key: str) -> bool:
@@ -123,7 +126,7 @@ class TypingController:
             pyautogui.press(key)
             return True
         except Exception as e:
-            print(f"[TypingController] Key press failed: {e}")
+            log.error("Key press failed: %s", e)
             return False
             
     def hotkey(self, *keys: str) -> bool:
@@ -135,7 +138,7 @@ class TypingController:
             pyautogui.hotkey(*keys)
             return True
         except Exception as e:
-            print(f"[TypingController] Hotkey failed: {e}")
+            log.error("Hotkey failed: %s", e)
             return False
 
 

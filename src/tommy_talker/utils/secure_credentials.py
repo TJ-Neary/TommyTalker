@@ -4,9 +4,12 @@ Environment-based credential storage using python-dotenv.
 Stores API keys and tokens in .env file (gitignored).
 """
 
+import logging
 import os
 from pathlib import Path
 from typing import Optional
+
+log = logging.getLogger("TommyTalker")
 
 # Use python-dotenv for .env file handling
 try:
@@ -14,7 +17,7 @@ try:
     HAS_DOTENV = True
 except ImportError:
     HAS_DOTENV = False
-    print("[WARNING] python-dotenv not installed - credential storage limited")
+    log.warning("python-dotenv not installed - credential storage limited")
 
 
 # Path to .env file in project root
@@ -30,7 +33,7 @@ def _ensure_env_file():
     env_path = _get_env_path()
     if not env_path.exists():
         env_path.touch()
-        print(f"[SecureCredentials] Created .env file at: {env_path}")
+        log.debug("Created .env file at: %s", env_path)
 
 
 def load_env():
@@ -39,7 +42,7 @@ def load_env():
         env_path = _get_env_path()
         if env_path.exists():
             load_dotenv(env_path)
-            print(f"[SecureCredentials] Loaded .env from: {env_path}")
+            log.debug("Loaded .env from: %s", env_path)
 
 
 def store_credential(key: str, value: str) -> bool:
@@ -54,7 +57,7 @@ def store_credential(key: str, value: str) -> bool:
         True if stored successfully
     """
     if not HAS_DOTENV:
-        print(f"[SecureCredentials] dotenv not available, cannot store {key}")
+        log.warning("dotenv not available, cannot store %s", key)
         return False
         
     try:
@@ -63,10 +66,10 @@ def store_credential(key: str, value: str) -> bool:
         set_key(str(env_path), key, value)
         # Also set in current environment
         os.environ[key] = value
-        print(f"[SecureCredentials] Stored {key} in .env")
+        log.debug("Stored %s in .env", key)
         return True
     except Exception as e:
-        print(f"[SecureCredentials] Error storing {key}: {e}")
+        log.error("Error storing %s: %s", key, e)
         return False
 
 

@@ -28,18 +28,12 @@ hiddenimports = [
     'tommy_talker.engine',
     'tommy_talker.engine.audio_capture',
     'tommy_talker.engine.transcriber',
-    'tommy_talker.engine.llm_client',
-    'tommy_talker.engine.diarizer',
-    'tommy_talker.engine.rag_store',
     'tommy_talker.engine.modes',
-    'tommy_talker.engine.session_db',
     'tommy_talker.gui',
     'tommy_talker.gui.menu_bar',
     'tommy_talker.gui.dashboard',
-    'tommy_talker.gui.hud',
     'tommy_talker.gui.setup_guide',
     'tommy_talker.gui.onboarding',
-    'tommy_talker.gui.hotkey_selector',
     'tommy_talker.utils',
     'tommy_talker.utils.config',
     'tommy_talker.utils.hardware_detect',
@@ -66,7 +60,6 @@ hiddenimports = [
     'Foundation',
     'Cocoa',
     'Quartz',
-    'AVFoundation',
 
     # Audio
     'sounddevice',
@@ -76,16 +69,10 @@ hiddenimports = [
     # AI/ML
     'mlx',
     'mlx_whisper',
-    'ollama',
-    'chromadb',
-    'pyannote.audio',
 
     # Utils
     'psutil',
     'pyautogui',
-
-    # SQLite
-    'sqlite3',
 ]
 
 # Exclude packages that are too large or not needed

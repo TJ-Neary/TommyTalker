@@ -44,16 +44,7 @@ def setup_logger(enabled: bool = True, level: int = logging.DEBUG) -> logging.Lo
     
     # Remove existing handlers
     logger.handlers.clear()
-    
-    # Console handler (always active)
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)
-    console_format = logging.Formatter(
-        '[%(levelname)s] %(message)s'
-    )
-    console_handler.setFormatter(console_format)
-    logger.addHandler(console_handler)
-    
+
     # File handler (if enabled)
     if enabled:
         _file_handler = _create_file_handler(level)
@@ -88,7 +79,7 @@ def _create_file_handler(level: int) -> Optional[logging.FileHandler]:
         return handler
         
     except Exception as e:
-        print(f"[Logger] Failed to create file handler: {e}")
+        logging.getLogger("TommyTalker").error("Failed to create file handler: %s", e)
         return None
 
 
