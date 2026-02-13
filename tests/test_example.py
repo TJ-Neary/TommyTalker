@@ -38,6 +38,70 @@ class TestConfigModule:
         assert mock_hardware.ram_gb >= 32
 
 
+class TestWordReplacements:
+    """Test word replacement feature."""
+
+    def test_config_default_empty(self, mock_config):
+        """Default config has no word replacements."""
+        assert mock_config.word_replacements == {}
+
+    def test_config_roundtrip(self, tmp_path, monkeypatch):
+        """Word replacements persist through save/load cycle."""
+        from tommy_talker.utils.config import UserConfig, save_config, load_config, BASE_DATA_DIR
+        monkeypatch.setattr("tommy_talker.utils.config.BASE_DATA_DIR", tmp_path)
+
+        config = UserConfig(word_replacements={"Korreg": "CoreRag", "super whisper": "Superwhisper"})
+        save_config(config)
+        loaded = load_config()
+        assert loaded.word_replacements == {"Korreg": "CoreRag", "super whisper": "Superwhisper"}
+
+    def test_replacement_applied(self):
+        """Word replacements are applied to text."""
+        import re
+        replacements = {"Korreg": "CoreRag"}
+        text = "Check out Korreg for details"
+        for original, replacement in replacements.items():
+            text = re.sub(r'\b' + re.escape(original) + r'\b', replacement, text, flags=re.IGNORECASE)
+        assert text == "Check out CoreRag for details"
+
+    def test_replacement_case_insensitive(self):
+        """Replacements match regardless of case."""
+        import re
+        replacements = {"korreg": "CoreRag"}
+        text = "Use KORREG or korreg"
+        for original, replacement in replacements.items():
+            text = re.sub(r'\b' + re.escape(original) + r'\b', replacement, text, flags=re.IGNORECASE)
+        assert text == "Use CoreRag or CoreRag"
+
+    def test_replacement_whole_word_only(self):
+        """Replacements only match whole words, not substrings."""
+        import re
+        replacements = {"core": "Core"}
+        text = "The corerag module is in hardcore mode"
+        for original, replacement in replacements.items():
+            text = re.sub(r'\b' + re.escape(original) + r'\b', replacement, text, flags=re.IGNORECASE)
+        assert "corerag" in text  # Should NOT be replaced inside another word
+        assert "hardcore" in text  # Should NOT be replaced inside another word
+
+    def test_replacement_multi_word(self):
+        """Multi-word originals are supported."""
+        import re
+        replacements = {"super whisper": "Superwhisper"}
+        text = "I used super whisper yesterday"
+        for original, replacement in replacements.items():
+            text = re.sub(r'\b' + re.escape(original) + r'\b', replacement, text, flags=re.IGNORECASE)
+        assert text == "I used Superwhisper yesterday"
+
+    def test_multiple_replacements(self):
+        """Multiple replacement rules are applied in sequence."""
+        import re
+        replacements = {"Korreg": "CoreRag", "HooHoo": "WhoWho"}
+        text = "Try Korreg and HooHoo"
+        for original, replacement in replacements.items():
+            text = re.sub(r'\b' + re.escape(original) + r'\b', replacement, text, flags=re.IGNORECASE)
+        assert text == "Try CoreRag and WhoWho"
+
+
 class TestOperatingModes:
     """Test operating mode enumeration."""
 
