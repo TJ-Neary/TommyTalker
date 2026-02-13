@@ -1,34 +1,17 @@
 """
 TommyTalker Hotkeys
-Global hotkey registration using Carbon HIToolbox RegisterEventHotKey.
+Global hotkey registration using Quartz Event Tap.
 
-Based on QuickMacHotKey pattern (https://github.com/glyph/QuickMacHotKey)
-which properly consumes events and doesn't leak keystrokes to apps.
+Supports both modifier-only keys (e.g., Right Command for push-to-talk)
+and standard key combos (e.g., Option+R) via CGEventTap.
 """
 
+import logging
 from typing import Callable, Optional
 from dataclasses import dataclass
 
-# Try to import pyobjc Carbon functions
-try:
-    import objc
-    from Foundation import NSObject
-    from Carbon import (
-        RegisterEventHotKey,
-        UnregisterEventHotKey,
-        GetEventDispatcherTarget,
-        InstallEventHandler,
-        GetEventParameter,
-        kEventClassKeyboard,
-        kEventHotKeyPressed,
-        kEventHotKeyReleased,
-    )
-    HAS_CARBON = True
-except ImportError:
-    HAS_CARBON = False
-    print("[WARNING] Carbon hotkeys not available - falling back to event tap")
+log = logging.getLogger("TommyTalker")
 
-# Always import Quartz — needed for modifier-only hotkeys AND as fallback for regular hotkeys
 try:
     from Quartz import (
         CGEventTapCreate,
@@ -52,8 +35,7 @@ try:
     HAS_QUARTZ = True
 except ImportError:
     HAS_QUARTZ = False
-    if not HAS_CARBON:
-        print("[WARNING] Neither Carbon nor Quartz available - global hotkeys disabled")
+    log.warning("Quartz not available - global hotkeys disabled")
 
 
 # Key code mappings (macOS virtual key codes)
@@ -67,34 +49,13 @@ KEY_CODES = {
     "0": 29, "1": 18, "2": 19, "3": 20, "4": 21, "5": 23, "6": 22, "7": 26,
     "8": 28, "9": 25,
     # Punctuation
-    ".": 47,   # Period
-    ",": 43,   # Comma
-    "/": 44,   # Slash
-    ";": 41,   # Semicolon
-    "'": 39,   # Quote
-    "[": 33,   # Left bracket
-    "]": 30,   # Right bracket
-    "-": 27,   # Minus
-    "=": 24,   # Equals
-    "`": 50,   # Backtick
-    "\\": 42,  # Backslash
+    ".": 47, ",": 43, "/": 44, ";": 41, "'": 39,
+    "[": 33, "]": 30, "-": 27, "=": 24, "`": 50, "\\": 42,
     # Special keys
-    "space": 49,
-    "return": 36,
-    "escape": 53,
-    "tab": 48,
-    "delete": 51,
+    "space": 49, "return": 36, "escape": 53, "tab": 48, "delete": 51,
 }
 
-# Carbon modifier masks
-CARBON_MODIFIERS = {
-    "cmd": 0x0100,      # cmdKey
-    "shift": 0x0200,    # shiftKey
-    "alt": 0x0800,      # optionKey
-    "ctrl": 0x1000,     # controlKey
-}
-
-# Quartz modifier flags (fallback)
+# Quartz modifier flags
 MODIFIER_FLAGS = {
     "cmd": 1 << 20,    # Command
     "shift": 1 << 17,  # Shift
@@ -114,7 +75,7 @@ MODIFIER_KEY_CODES = {
     "left_ctrl": 59,
 }
 
-# User-friendly name mappings → MODIFIER_KEY_CODES keys
+# User-friendly name mappings -> MODIFIER_KEY_CODES keys
 MODIFIER_KEY_NAMES = {
     "rightcmd": "right_cmd",
     "rightcommand": "right_cmd",
@@ -146,46 +107,29 @@ class Hotkey:
     modifiers: list[str]  # e.g., ["cmd", "shift"]
     callback: Callable  # Called on key-down
     callback_up: Optional[Callable] = None  # Called on key-up (for push-to-talk)
-    name: str = ""          # Human-readable name
-    ref: object = None      # Carbon hotkey reference
+    name: str = ""
 
 
 class HotkeyManager:
     """
-    Global hotkey manager.
-    
-    Uses Carbon RegisterEventHotKey if available (preferred, consumes events properly).
-    Falls back to Quartz Event Taps if Carbon isn't available.
+    Global hotkey manager using Quartz Event Taps.
+
+    Supports modifier-only keys (e.g., RightCmd for push-to-talk) via
+    kCGEventFlagsChanged, and standard key combos via kCGEventKeyDown/Up.
     """
-    
+
     def __init__(self):
         self._hotkeys: dict[str, Hotkey] = {}
-        self._modifier_hotkeys: dict[str, Hotkey] = {}  # Modifier-only hotkeys
-        self._hotkey_refs: dict[int, str] = {}  # Maps hotkey ID to hotkey_id string
-        self._pressed_keys: set[str] = set()  # Track currently pressed hotkeys
-        self._pressed_key_codes: dict[int, str] = {}  # For fallback mode
-        self._pressed_modifier_keys: set[int] = set()  # Track pressed modifier keycodes
+        self._modifier_hotkeys: dict[str, Hotkey] = {}
+        self._pressed_keys: set[str] = set()
+        self._pressed_key_codes: dict[int, str] = {}
+        self._pressed_modifier_keys: set[int] = set()
         self._event_tap = None
-        self._modifier_tap = None  # Separate tap for modifier-only hotkeys
-        self._event_handler = None
+        self._modifier_tap = None
         self._running = False
-        self._next_hotkey_id = 1
 
-        if HAS_CARBON:
-            print("[HotkeyManager] Using Carbon RegisterEventHotKey (preferred)")
-        elif HAS_QUARTZ:
-            print("[HotkeyManager] Using Quartz EventTap (fallback)")
-        else:
-            print("[HotkeyManager] No hotkey support available")
-            
     def _parse_hotkey_string(self, hotkey_str: str) -> tuple[str, list[str]]:
-        """
-        Parse a hotkey string like "Cmd+Shift+Space" into key and modifiers.
-        Also handles modifier-only strings like "RightCmd".
-
-        Returns:
-            (key, [modifiers]) — for modifier-only hotkeys, key is in MODIFIER_KEY_CODES
-        """
+        """Parse a hotkey string like "Cmd+Shift+Space" into key and modifiers."""
         # Check for modifier-only hotkey (e.g., "RightCmd", "LeftOption")
         normalized = hotkey_str.lower().replace(" ", "").replace("+", "").replace("_", "")
         if normalized in MODIFIER_KEY_NAMES:
@@ -210,20 +154,12 @@ class HotkeyManager:
                 key = part
 
         return key or "space", modifiers
-        
+
     def _get_hotkey_id(self, key: str, modifiers: list[str]) -> str:
         """Generate a unique ID for a hotkey combination."""
         mods = "+".join(sorted(modifiers))
         return f"{mods}+{key}"
-    
-    def _get_carbon_modifier_mask(self, modifiers: list[str]) -> int:
-        """Convert modifier list to Carbon modifier mask."""
-        mask = 0
-        for mod in modifiers:
-            if mod in CARBON_MODIFIERS:
-                mask |= CARBON_MODIFIERS[mod]
-        return mask
-        
+
     def register(
         self,
         hotkey_str: str,
@@ -231,293 +167,116 @@ class HotkeyManager:
         name: str = "",
         callback_up: Optional[Callable] = None
     ) -> bool:
-        """
-        Register a global hotkey.
-
-        Args:
-            hotkey_str: Hotkey string like "Cmd+Shift+Space" or "RightCmd"
-            callback: Function to call when hotkey is pressed
-            name: Human-readable name for the hotkey
-            callback_up: Optional function to call when hotkey is released
-
-        Returns:
-            True if registered successfully
-        """
-        if not HAS_CARBON and not HAS_QUARTZ:
-            print(f"[HotkeyManager] Cannot register '{hotkey_str}' - no hotkey support")
+        """Register a global hotkey."""
+        if not HAS_QUARTZ:
+            log.warning("Cannot register '%s' - Quartz not available", hotkey_str)
             return False
 
         key, modifiers = self._parse_hotkey_string(hotkey_str)
 
         # Modifier-only hotkeys (e.g., RightCmd) go to separate tracking
         if key in MODIFIER_KEY_CODES:
-            if not HAS_QUARTZ:
-                print(f"[HotkeyManager] Cannot register modifier-only '{hotkey_str}' - Quartz not available")
-                return False
             hotkey = Hotkey(
-                key=key,
-                modifiers=[],
-                callback=callback,
-                callback_up=callback_up,
-                name=name or hotkey_str
+                key=key, modifiers=[], callback=callback,
+                callback_up=callback_up, name=name or hotkey_str
             )
             self._modifier_hotkeys[key] = hotkey
-            print(f"[HotkeyManager] Registered modifier-only: {hotkey_str} ({name})")
+            log.debug("Registered modifier-only: %s (%s)", hotkey_str, name)
             return True
 
         # Regular hotkey registration
         hotkey_id = self._get_hotkey_id(key, modifiers)
 
         if key not in KEY_CODES:
-            print(f"[HotkeyManager] Unknown key: {key}")
+            log.warning("Unknown key: %s", key)
             return False
 
         hotkey = Hotkey(
-            key=key,
-            modifiers=modifiers,
-            callback=callback,
-            callback_up=callback_up,
-            name=name or hotkey_str
+            key=key, modifiers=modifiers, callback=callback,
+            callback_up=callback_up, name=name or hotkey_str
         )
-
-        # For Carbon, register immediately if already running
-        if HAS_CARBON and self._running:
-            if not self._register_carbon_hotkey(hotkey, self._next_hotkey_id):
-                return False
-            self._hotkey_refs[self._next_hotkey_id] = hotkey_id
-            self._next_hotkey_id += 1
-
         self._hotkeys[hotkey_id] = hotkey
-        print(f"[HotkeyManager] Registered: {hotkey_str} ({name})")
+        log.debug("Registered: %s (%s)", hotkey_str, name)
         return True
-    
-    def _register_carbon_hotkey(self, hotkey: Hotkey, numeric_id: int) -> bool:
-        """Register a single hotkey with Carbon."""
-        if not HAS_CARBON:
-            return False
-            
-        key_code = KEY_CODES.get(hotkey.key)
-        mod_mask = self._get_carbon_modifier_mask(hotkey.modifiers)
-        
-        # Signature 'TMTK' (TommyTalker)
-        signature = 0x544D544B
-        hotkey_id = (signature, numeric_id)
-        
-        try:
-            result, ref = RegisterEventHotKey(
-                key_code,
-                mod_mask,
-                hotkey_id,
-                GetEventDispatcherTarget(),
-                0,
-                None
-            )
-            
-            if result == 0:
-                hotkey.ref = ref
-                return True
-            else:
-                print(f"[HotkeyManager] Failed to register Carbon hotkey: {result}")
-                return False
-        except Exception as e:
-            print(f"[HotkeyManager] Carbon registration error: {e}")
-            return False
-        
+
     def unregister(self, hotkey_str: str):
         """Unregister a hotkey."""
         key, modifiers = self._parse_hotkey_string(hotkey_str)
+
+        if key in MODIFIER_KEY_CODES and key in self._modifier_hotkeys:
+            del self._modifier_hotkeys[key]
+            log.debug("Unregistered modifier: %s", hotkey_str)
+            return
+
         hotkey_id = self._get_hotkey_id(key, modifiers)
-        
         if hotkey_id in self._hotkeys:
-            hotkey = self._hotkeys[hotkey_id]
-            
-            # Unregister from Carbon if applicable
-            if HAS_CARBON and hotkey.ref:
-                try:
-                    UnregisterEventHotKey(hotkey.ref)
-                except Exception as e:
-                    print(f"[HotkeyManager] Error unregistering: {e}")
-                    
             del self._hotkeys[hotkey_id]
-            print(f"[HotkeyManager] Unregistered: {hotkey_str}")
-            
+            log.debug("Unregistered: %s", hotkey_str)
+
     def _check_modifiers(self, flags: int, required: list[str]) -> bool:
-        """Check if the required modifiers are pressed (for fallback mode)."""
+        """Check if the required modifiers are pressed."""
         for mod in required:
             if mod not in MODIFIER_FLAGS:
                 continue
             if not (flags & MODIFIER_FLAGS[mod]):
                 return False
         return True
-        
+
     def _event_callback(self, proxy, event_type, event, refcon):
-        """Callback for Quartz event tap (fallback mode)."""
-        # Re-enable event tap if it was auto-disabled by macOS
+        """Callback for Quartz event tap (key down/up)."""
         if self._event_tap and not CGEventTapIsEnabled(self._event_tap):
-            print("[HotkeyManager] Re-enabling event tap")
             CGEventTapEnable(self._event_tap, True)
-        
+
         if event_type not in (kCGEventKeyDown, kCGEventKeyUp):
             return event
-            
+
         try:
-            # Get key code
             key_code = CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode)
-            
-            # Handle key-up first - check if this was a pressed hotkey
+
+            # Handle key-up: check if this was a pressed hotkey
             if event_type == kCGEventKeyUp:
                 if key_code in self._pressed_key_codes:
                     hotkey_id = self._pressed_key_codes.pop(key_code)
                     self._pressed_keys.discard(hotkey_id)
-                    
+
                     hotkey = self._hotkeys.get(hotkey_id)
                     if hotkey and hotkey.callback_up:
                         try:
                             hotkey.callback_up()
                         except Exception as e:
-                            print(f"[HotkeyManager] Key-up callback error: {e}")
-                    
+                            log.error("Key-up callback error: %s", e)
+
                     return None  # Consume key-up
-                return event  # Not our key-up
-            
-            # Key-down: Get modifier flags and match hotkey
+                return event
+
+            # Key-down: match hotkey
             flags = NSEvent.modifierFlags()
-            
+
             for hotkey_id, hotkey in self._hotkeys.items():
                 expected_key_code = KEY_CODES.get(hotkey.key)
-                
+
                 if key_code == expected_key_code:
                     if self._check_modifiers(flags, hotkey.modifiers):
-                        # Check if already pressed (key repeat)
                         if hotkey_id in self._pressed_keys:
-                            return None  # Ignore key repeat, but consume event
-                        
+                            return None  # Ignore key repeat
+
                         self._pressed_keys.add(hotkey_id)
-                        self._pressed_key_codes[key_code] = hotkey_id  # Track for key-up
-                        
-                        # Execute key-down callback
+                        self._pressed_key_codes[key_code] = hotkey_id
+
                         try:
                             hotkey.callback()
                         except Exception as e:
-                            print(f"[HotkeyManager] Key-down callback error: {e}")
-                            
+                            log.error("Key-down callback error: %s", e)
+
                         return None  # Consume the event
-                        
+
         except Exception as e:
-            print(f"[HotkeyManager] Event processing error: {e}")
-            
+            log.error("Event processing error: %s", e)
+
         return event
-        
-    def start(self) -> bool:
-        """
-        Start listening for global hotkeys.
-
-        Returns:
-            True if started successfully
-        """
-        if self._running:
-            return True
-
-        if HAS_CARBON:
-            result = self._start_carbon()
-        elif HAS_QUARTZ:
-            result = self._start_quartz()
-        else:
-            result = False
-
-        # Start modifier tap for modifier-only hotkeys (works alongside Carbon)
-        if self._modifier_hotkeys and HAS_QUARTZ:
-            modifier_result = self._start_modifier_tap()
-            if not result:
-                result = modifier_result
-
-        return result
-            
-    def _start_carbon(self) -> bool:
-        """Start Carbon-based hotkey listening."""
-        # Note: Carbon RegisterEventHotKey works with the main run loop
-        # For now, register all hotkeys
-        numeric_id = 1
-        for hotkey_id, hotkey in self._hotkeys.items():
-            if self._register_carbon_hotkey(hotkey, numeric_id):
-                self._hotkey_refs[numeric_id] = hotkey_id
-                numeric_id += 1
-                
-        self._next_hotkey_id = numeric_id
-        self._running = True
-        print("[HotkeyManager] Started listening for hotkeys (Carbon)")
-        return True
-        
-    def _start_quartz(self) -> bool:
-        """Start Quartz EventTap-based hotkey listening (fallback)."""
-        try:
-            # Create event tap for both key-down and key-up
-            self._event_tap = CGEventTapCreate(
-                kCGHIDEventTap,           # Tap location
-                kCGHeadInsertEventTap,    # Placement
-                kCGEventTapOptionDefault,  # Options
-                CGEventMaskBit(kCGEventKeyDown) | CGEventMaskBit(kCGEventKeyUp),
-                self._event_callback,     # Callback
-                None                      # User info
-            )
-
-            if not self._event_tap:
-                print("[HotkeyManager] Failed to create event tap - check Accessibility permission")
-                return False
-
-            # Enable the tap
-            CGEventTapEnable(self._event_tap, True)
-
-            # Add to run loop
-            source = CFMachPortCreateRunLoopSource(None, self._event_tap, 0)
-            CFRunLoopAddSource(CFRunLoopGetCurrent(), source, kCFRunLoopCommonModes)
-
-            self._running = True
-            print("[HotkeyManager] Started listening for hotkeys (Quartz fallback)")
-            return True
-
-        except Exception as e:
-            print(f"[HotkeyManager] Error starting: {e}")
-            return False
-
-    def _start_modifier_tap(self) -> bool:
-        """Start a Quartz event tap for modifier-only hotkeys (e.g., RightCmd)."""
-        if not HAS_QUARTZ:
-            print("[HotkeyManager] Quartz not available for modifier-only hotkeys")
-            return False
-
-        if not self._modifier_hotkeys:
-            return True  # Nothing to listen for
-
-        try:
-            self._modifier_tap = CGEventTapCreate(
-                kCGHIDEventTap,
-                kCGHeadInsertEventTap,
-                kCGEventTapOptionDefault,
-                CGEventMaskBit(kCGEventFlagsChanged),
-                self._modifier_event_callback,
-                None
-            )
-
-            if not self._modifier_tap:
-                print("[HotkeyManager] Failed to create modifier event tap - check Accessibility permission")
-                return False
-
-            CGEventTapEnable(self._modifier_tap, True)
-
-            source = CFMachPortCreateRunLoopSource(None, self._modifier_tap, 0)
-            CFRunLoopAddSource(CFRunLoopGetCurrent(), source, kCFRunLoopCommonModes)
-
-            print("[HotkeyManager] Modifier tap started for modifier-only hotkeys")
-            return True
-
-        except Exception as e:
-            print(f"[HotkeyManager] Error starting modifier tap: {e}")
-            return False
 
     def _modifier_event_callback(self, proxy, event_type, event, refcon):
         """Handle kCGEventFlagsChanged events for modifier-only hotkeys."""
-        # Re-enable tap if macOS auto-disabled it
         if self._modifier_tap and not CGEventTapIsEnabled(self._modifier_tap):
             CGEventTapEnable(self._modifier_tap, True)
 
@@ -532,53 +291,122 @@ class HotkeyManager:
 
                 if keycode == expected_keycode:
                     if keycode in self._pressed_modifier_keys:
-                        # Key was pressed, now released
+                        # Key released
                         self._pressed_modifier_keys.discard(keycode)
                         if hotkey.callback_up:
                             try:
                                 hotkey.callback_up()
                             except Exception as e:
-                                print(f"[HotkeyManager] Modifier key-up error: {e}")
+                                log.error("Modifier key-up error: %s", e)
                     else:
                         # Key pressed
                         self._pressed_modifier_keys.add(keycode)
                         try:
                             hotkey.callback()
                         except Exception as e:
-                            print(f"[HotkeyManager] Modifier key-down error: {e}")
+                            log.error("Modifier key-down error: %s", e)
                     break
 
         except Exception as e:
-            print(f"[HotkeyManager] Modifier event error: {e}")
+            log.error("Modifier event error: %s", e)
 
-        # Never consume modifier events — they must flow to the system
+        # Never consume modifier events
         return event
+
+    def start(self) -> bool:
+        """Start listening for global hotkeys."""
+        if self._running:
+            return True
+
+        if not HAS_QUARTZ:
+            return False
+
+        success = False
+
+        # Start key event tap for regular hotkeys
+        if self._hotkeys:
+            success = self._start_key_tap()
+
+        # Start modifier tap for modifier-only hotkeys (e.g., RightCmd)
+        if self._modifier_hotkeys:
+            modifier_ok = self._start_modifier_tap()
+            if not success:
+                success = modifier_ok
+
+        return success
+
+    def _start_key_tap(self) -> bool:
+        """Start Quartz EventTap for key down/up events."""
+        try:
+            self._event_tap = CGEventTapCreate(
+                kCGHIDEventTap,
+                kCGHeadInsertEventTap,
+                kCGEventTapOptionDefault,
+                CGEventMaskBit(kCGEventKeyDown) | CGEventMaskBit(kCGEventKeyUp),
+                self._event_callback,
+                None
+            )
+
+            if not self._event_tap:
+                log.error("Failed to create event tap - check Accessibility permission")
+                return False
+
+            CGEventTapEnable(self._event_tap, True)
+            source = CFMachPortCreateRunLoopSource(None, self._event_tap, 0)
+            CFRunLoopAddSource(CFRunLoopGetCurrent(), source, kCFRunLoopCommonModes)
+
+            self._running = True
+            log.debug("Key event tap started")
+            return True
+
+        except Exception as e:
+            log.error("Error starting key tap: %s", e)
+            return False
+
+    def _start_modifier_tap(self) -> bool:
+        """Start Quartz EventTap for modifier-only hotkeys."""
+        try:
+            self._modifier_tap = CGEventTapCreate(
+                kCGHIDEventTap,
+                kCGHeadInsertEventTap,
+                kCGEventTapOptionDefault,
+                CGEventMaskBit(kCGEventFlagsChanged),
+                self._modifier_event_callback,
+                None
+            )
+
+            if not self._modifier_tap:
+                log.error("Failed to create modifier tap - check Accessibility permission")
+                return False
+
+            CGEventTapEnable(self._modifier_tap, True)
+            source = CFMachPortCreateRunLoopSource(None, self._modifier_tap, 0)
+            CFRunLoopAddSource(CFRunLoopGetCurrent(), source, kCFRunLoopCommonModes)
+
+            self._running = True
+            log.debug("Modifier tap started")
+            return True
+
+        except Exception as e:
+            log.error("Error starting modifier tap: %s", e)
+            return False
 
     def stop(self):
         """Stop listening for global hotkeys."""
-        if HAS_CARBON:
-            # Unregister all Carbon hotkeys
-            for hotkey in self._hotkeys.values():
-                if hotkey.ref:
-                    try:
-                        UnregisterEventHotKey(hotkey.ref)
-                        hotkey.ref = None
-                    except:
-                        pass
-
         if self._event_tap:
             CGEventTapEnable(self._event_tap, False)
             self._event_tap = None
 
-        # Stop modifier tap
         if self._modifier_tap:
             CGEventTapEnable(self._modifier_tap, False)
             self._modifier_tap = None
-        self._pressed_modifier_keys.clear()
 
+        self._pressed_modifier_keys.clear()
+        self._pressed_keys.clear()
+        self._pressed_key_codes.clear()
         self._running = False
-        print("[HotkeyManager] Stopped listening for hotkeys")
-        
+        log.debug("Stopped")
+
     @property
     def is_running(self) -> bool:
         return self._running

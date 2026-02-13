@@ -1,8 +1,8 @@
 """
-TommyTalker - Privacy-first voice intelligence suite for macOS.
+TommyTalker - Privacy-first voice-to-text for macOS.
 
-Local-first speech-to-text via mlx-whisper, LLM-powered text rewriting via Ollama,
-speaker diarization via pyannote.audio, and RAG-based meeting transcription via ChromaDB.
+Local-first speech-to-text via mlx-whisper with push-to-talk dictation
+and app-aware text formatting on Apple Silicon.
 """
 
 __version__ = "0.1.0"
@@ -19,11 +19,9 @@ __version__ = "0.1.0"
 __all__ = [
     # Engine
     "AudioCapture",
-    "DualStreamRecorder",
+    "Recorder",
+    "SessionRecorder",
     "Transcriber",
-    "LLMClient",
-    "Diarizer",
-    "RAGStore",
     "OperatingMode",
     "ModeManager",
     "ModeResult",
@@ -42,7 +40,6 @@ __all__ = [
     # GUI
     "MenuBarApp",
     "DashboardWindow",
-    "HUDOverlay",
     "SetupGuideWindow",
     # Controller
     "AppController",

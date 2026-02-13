@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TommyTalker - Privacy-First Voice Intelligence Suite
+TommyTalker - Privacy-First Voice-to-Text
 Main entry point for the macOS application.
 """
 
@@ -110,18 +110,23 @@ def _wire_connections(app: QApplication, controller: AppController, menu_bar: Me
                       dashboard: DashboardWindow):
     """Wire up signal/slot connections between components."""
 
-    # Menu bar → Controller
-    menu_bar.recording_toggled_signal.connect(lambda _: controller.toggle_recording())
+    # Session recording: menu button → controller
+    menu_bar.session_recording_toggled_signal.connect(controller.toggle_session_recording)
 
-    # Menu bar → Dashboard
-    menu_bar.open_dashboard_signal.connect(dashboard.show)
+    # Session recording state → menu bar UI
+    controller.session_recording_changed.connect(menu_bar.set_session_recording_state)
+
+    # Push-to-talk recording state → menu bar status text
+    controller.recording_changed.connect(menu_bar.set_recording_state)
+
+    # Unified any-recording state → menu bar icon color
+    controller.any_recording_changed.connect(menu_bar.set_any_recording_state)
+
+    # Menu bar → Dashboard (bring to front for LSUIElement apps)
+    menu_bar.open_dashboard_signal.connect(dashboard.bring_to_front)
 
     # Dashboard → Controller
     dashboard.config_changed_signal.connect(controller.update_config)
-    dashboard.clear_session_signal.connect(controller.clear_session)
-
-    # Controller recording state → Menu bar icon
-    controller.recording_changed.connect(menu_bar.set_recording_state)
 
     # Cleanup on app quit
     app.aboutToQuit.connect(controller.shutdown)

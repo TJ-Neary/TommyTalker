@@ -4,10 +4,13 @@ Detects the frontmost app and looks up its text input format profile.
 """
 
 import json
+import logging
 from enum import Enum
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
+
+log = logging.getLogger("TommyTalker")
 
 # Try to import NSWorkspace for frontmost app detection
 try:
@@ -72,7 +75,7 @@ def detect_frontmost_app() -> tuple[str, str]:
             bundle_id = app.bundleIdentifier() or ""
             return (name, bundle_id)
     except Exception as e:
-        print(f"[AppContext] Error detecting frontmost app: {e}")
+        log.error("Error detecting frontmost app: %s", e)
 
     return ("Unknown", "")
 
@@ -123,9 +126,9 @@ def load_app_profiles() -> dict[str, AppProfile]:
                     short_description=entry.get("short_description", ""),
                 )
 
-            print(f"[AppContext] Loaded {len(profiles)} bundled app profiles")
+            log.debug("Loaded %s bundled app profiles", len(profiles))
         except Exception as e:
-            print(f"[AppContext] Error loading bundled profiles: {e}")
+            log.error("Error loading bundled profiles: %s", e)
 
     # Load custom overrides (user profiles take precedence)
     custom_path = _get_custom_profiles_path()
@@ -151,9 +154,9 @@ def load_app_profiles() -> dict[str, AppProfile]:
                 count += 1
 
             if count:
-                print(f"[AppContext] Loaded {count} custom app profile overrides")
+                log.debug("Loaded %s custom app profile overrides", count)
         except Exception as e:
-            print(f"[AppContext] Error loading custom profiles: {e}")
+            log.error("Error loading custom profiles: %s", e)
 
     _profiles_cache = profiles
     return profiles

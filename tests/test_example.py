@@ -36,20 +36,16 @@ class TestConfigModule:
         """Mock hardware fixture provides Tier 3 profile."""
         assert mock_hardware.tier == 3
         assert mock_hardware.ram_gb >= 32
-        assert mock_hardware.diarization_enabled is True
 
 
 class TestOperatingModes:
     """Test operating mode enumeration."""
 
     def test_operating_mode_values(self):
-        """All four operating modes are defined."""
+        """Push-to-talk cursor mode is defined."""
         from tommy_talker.engine.modes import OperatingMode
 
         assert OperatingMode.CURSOR.value == "cursor"
-        assert OperatingMode.EDITOR.value == "editor"
-        assert OperatingMode.MEETING.value == "meeting"
-        assert OperatingMode.HUD.value == "hud"
 
     def test_mode_result_dataclass(self):
         """ModeResult dataclass is properly structured."""

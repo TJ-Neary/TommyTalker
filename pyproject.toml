@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tommytalker"
 version = "0.1.0"
-description = "Privacy-First Voice Intelligence Suite for macOS"
+description = "Privacy-first voice-to-text for macOS"
 readme = "README.md"
 requires-python = ">=3.12"
 license = {text = "MIT"}
@@ -26,12 +26,10 @@ classifiers = [
 dependencies = [
     "PyQt6>=6.6.0",
     "pyobjc-framework-Cocoa>=10.0",
+    "pyobjc-framework-Quartz>=10.0",
     "sounddevice>=0.4.6",
-    "soundfile>=0.12.1",
+    "soundfile>=0.12.0",
     "mlx-whisper>=0.1.0",
-    "ollama>=0.1.0",
-    "pyannote.audio>=3.1.0",
-    "chromadb>=0.4.0",
     "pyautogui>=0.9.54",
     "psutil>=5.9.0",
     "numpy>=1.24.0",
