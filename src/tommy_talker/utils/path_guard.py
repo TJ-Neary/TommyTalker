@@ -19,7 +19,6 @@ Usage:
     if guard.is_write_allowed("/app/src/main.py"):
         write_file(...)  # blocked
 
-Contributed by: Kendra
 Synced from: _HQ/templates/src-skeleton/utils/path_guard.py v1
 """
 

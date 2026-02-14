@@ -14,7 +14,6 @@ Usage:
     else:
         print(result.summary())
 
-Contributed by: Kendra
 Synced from: _HQ/templates/src-skeleton/utils/code_validator.py v1
 """
 
