@@ -184,9 +184,9 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 - [x] MIT LICENSE
 - [x] CONTRIBUTING.md
 - [x] All documentation updated
-- [ ] Push to GitHub public repository
+- [x] Push to GitHub public repository
 
-### Phase 9: Production Readiness (2026-02-12)
+### Phase 9: Production Readiness ✓ (2026-02-12)
 - [x] CI/CD pipeline (GitHub Actions: lint, test, security scan)
 - [x] Custom TT menu bar icon (white square, dark TT; red TT when recording)
 - [x] App icon generation script (scripts/generate_icon.py → .icns)
@@ -210,8 +210,21 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 - [x] Cleaned onboarding.py (removed LLM download, hotkey config pages)
 - [x] Removed ollama, pyannote.audio, chromadb from dependencies
 - [x] Retina 2x menu bar icon rendering
-- [x] All 61 tests passing, zero startup warnings
+- [x] All 95 tests passing, zero startup warnings
 - [x] Updated CLAUDE.md, DevPlan.md, TommyTalker.spec
+
+### Phase 11: GitHub Publication ✓ (2026-02-14)
+- [x] Full documentation audit and rewrite (README, ARCHITECTURE, SECURITY, CONTRIBUTING, CLAUDE.md)
+- [x] Created ARCHITECTURE.md with C4 diagrams (Mermaid.js)
+- [x] Created SECURITY.md with vulnerability reporting policy
+- [x] Removed stale feature references from all docs (LLM, diarization, RAG, HUD)
+- [x] Removed private project attribution from security utilities
+- [x] Updated GitHub repo description and topics
+- [x] Social preview image set
+- [x] Word replacement feature documented
+- [x] Session recording feature documented
+- [x] 95 tests passing across 5 files
+- [x] Pushed to GitHub — fully public
 
 ---
 
@@ -221,15 +234,16 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Push to GitHub | Ready | All docs updated, portfolio release |
 | Build and test .app | Ready | Run `./build.sh --install` to package and install |
-| Code signing | Deferred | For App Store / public distribution |
+| Code signing | Deferred | Requires Apple Developer account ($99/yr) |
 | Notarization | Deferred | Requires Apple Developer account |
 
 ### Completed (Recent)
 
 | Task | Status | Date |
 |------|--------|------|
+| GitHub publication (Tier 1 Public) | Done | 2026-02-14 |
+| Documentation audit and rewrite | Done | 2026-02-14 |
 | Feature stripping (LLM, diarizer, RAG, HUD) | Done | 2026-02-12 |
 | CI/CD GitHub Actions workflow | Done | 2026-02-12 |
 | Custom TT menu bar icon | Done | 2026-02-12 |
@@ -312,7 +326,7 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 
 ## Quality Standards
 
-- **Testing**: pytest with 61 tests, coverage reporting, mutation testing (mutmut)
+- **Testing**: pytest with 95 tests, coverage reporting, mutation testing (mutmut)
 - **Formatting**: black (100 char line length)
 - **Linting**: ruff (E, F, I, N, W rules)
 - **Type checking**: mypy
@@ -339,7 +353,10 @@ Paste at Cursor (clipboard + Cmd+V) or Type (character-by-character)
 | Unused engine features | Fully removed LLM, diarizer, RAG, HUD, hotkey_selector + 6 deps | 2026-02-12 |
 | Carbon hotkey warning | Removed Carbon entirely, Quartz-only hotkey system | 2026-02-12 |
 | Startup warnings (chromadb, pyobjc, etc.) | All eliminated by removing unused dependencies | 2026-02-12 |
+| Stale documentation post-stripping | Full rewrite of README, ARCHITECTURE, SECURITY, CONTRIBUTING, CLAUDE.md | 2026-02-14 |
+| Private attribution in public repo | Removed "Contributed by: Kendra" from 3 security utilities | 2026-02-14 |
+| GitHub metadata stale | Updated description, topics, social preview | 2026-02-14 |
 
 ---
 
-*Last updated: 2026-02-12*
+*Last updated: 2026-02-14*
