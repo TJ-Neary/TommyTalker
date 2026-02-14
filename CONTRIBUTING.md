@@ -1,12 +1,12 @@
 # Contributing to TommyTalker
 
-Thank you for your interest in contributing to TommyTalker! We are building a professional, privacy-first voice intelligence suite for macOS.
+Thank you for your interest in contributing to TommyTalker!
 
 ## Core Philosophy
 
-1.  **Privacy First**: No audio or text data ever leaves the user's machine unless explicitly configured for cloud fallback (which is off by default).
-2.  **Native Performance**: We optimize for Apple Silicon (`mlx-whisper`, `MPS` acceleration).
-3.  **Code Quality**: We maintain high standards for code readability, typing, and testing.
+1.  **Privacy First**: No audio or text data ever leaves the user's machine. All processing runs locally.
+2.  **Native Performance**: Optimized for Apple Silicon via mlx-whisper (Metal-accelerated).
+3.  **Code Quality**: High standards for code readability, typing, and testing.
 
 ## Development Setup
 
@@ -50,7 +50,7 @@ Thank you for your interest in contributing to TommyTalker! We are building a pr
 ## Pull Request Process
 
 1.  Ensure your code builds and passes all tests.
-2.  Update documentation (`README.md`, `StartHere.md`) if appropriate.
+2.  Update documentation (`README.md`, `CLAUDE.md`) if appropriate.
 3.  Submit your PR with a clear description of the problem and solution.
 
 ## Reporting Issues

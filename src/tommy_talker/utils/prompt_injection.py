@@ -21,7 +21,6 @@ Usage:
     if not result.passed:
         return f"File rejected: {result.reason}"
 
-Contributed by: Kendra
 Synced from: _HQ/templates/src-skeleton/utils/prompt_injection.py v1
 """
 

@@ -25,7 +25,7 @@ This is a **PUBLIC repository**. Content restrictions apply.
 
 TommyTalker is a privacy-first voice-to-text app for macOS. It provides push-to-talk dictation via Right Command key, with app-aware text formatting powered by 97 app profiles. Speech recognition runs locally via mlx-whisper on Apple Silicon.
 
-**Status:** Active — Push-to-talk operational, 61 tests passing, cursor mode only.
+**Status:** Portfolio Ready — Push-to-talk operational, 95 tests passing, cursor mode only.
 
 ## Development Commands
 
@@ -92,7 +92,7 @@ TommyTalker/
 │   │   └── prompt_injection.py # Prompt injection detection
 │   └── data/                   # Static data files
 │       └── app_profiles.json   # 97 app profiles for context detection
-├── tests/                      # 61 tests across 4 files
+├── tests/                      # 95 tests across 5 files
 ├── scripts/
 │   ├── security_scan.sh        # 9-phase pre-commit security scanner (v4)
 │   └── generate_icon.py        # App icon generator (.icns)
